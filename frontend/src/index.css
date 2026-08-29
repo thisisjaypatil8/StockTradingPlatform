@@ -4,3 +4,13 @@
     padding: 0;
     margin: 0;
 }
+
+
+
+
+:root {
+    --primary-color: #387ED1;
+    --secondary-color:#424242; 
+    --text-color: #212529;
+    --text-muted: #6c757d;
+}

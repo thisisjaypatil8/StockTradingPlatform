@@ -5,7 +5,7 @@ function App() {
 
   return (
     <>
-     <h1 className='text-2xl font-bold'>Stock Trading Platform</h1>
+    
      <HomePage/>
     </>
   )
