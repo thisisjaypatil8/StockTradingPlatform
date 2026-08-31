@@ -14,3 +14,9 @@
     --text-color: #212529;
     --text-muted: #6c757d;
 }
+
+.para{
+    font-size: 1.05rem;
+    font-weight: 400; 
+    line-height: 1.7 
+}

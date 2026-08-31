@@ -3,10 +3,10 @@ export default function Footer() {
         <footer className="border-top" style={{ backgroundColor: "#FBFBFB" }}>
             <div className="container">
                 <div className="row py-4 py-md-5 px-2 px-md-0">
-                    <div className="col-12 col-md-3">
+                    <div className="col-12 col-md-3 mb-5 mb-md-0">
                         <img src="media/images/logo.svg" alt="logo" className="img-fluid" style={{ maxWidth: "150px", width: "100%" }} />
                         <p className="mt-3 text-muted" style={{ fontSize: "0.8rem" }}>© 2010 - 2026, Zerodha Broking Ltd. <br /> All rights reserved</p>
-                        <div className="d-flex gap-4 mb-5 fs-5">
+                        <div className="d-flex gap-4 fs-5 pb-3 mb-3 border-bottom ">
                             <a href="#">
                                 <i className="fa-brands fa-x-twitter text-muted"></i>
                             </a>
@@ -21,7 +21,7 @@ export default function Footer() {
                                <i class="fa-brands fa-linkedin-in text-muted"></i>
                             </a>
                         </div>
-                        <div className="d-flex gap-3 fs-5">
+                        <div className="d-flex gap-3 fs-5 ">
                             <a href="" className="text-muted"><i className="fa-brands fa-youtube"></i></a>
                             <a href="" className="text-muted"><i className="fa-brands fa-whatsapp"></i> </a>
                             <a href="" className="text-muted"><i className="fa-brands fa-telegram"></i> </a>
@@ -37,7 +37,7 @@ export default function Footer() {
                     </div>
                     <div className="col-12 col-md-9">
                         <div className="row">
-                            <div className="col-12 col-md-3 mb-2 gap-2 px-3">
+                            <div className="col-6 col-md-3 mb-2 gap-2 px-3">
                                 <h5 className="fw-semibold mb-3 "style={{ color: "var(--secondary-color)" }}>Account</h5>
                                 <p><a href="#" className="text-muted text-decoration-none ">Open demat account</a></p>
                                 <p><a href="#" className="text-muted text-decoration-none">Minor demat account</a></p>
@@ -48,7 +48,7 @@ export default function Footer() {
                                 <p><a href="#" className="text-muted text-decoration-none">Fund transfer</a></p>
                                 <p><a href="#" className="text-muted text-decoration-none">MTF</a></p>
                             </div>
-                            <div className="col-12 col-md-3 mb-4 gap-2 px-3">
+                            <div className="col-6 col-md-3 mb-4 gap-2 px-3">
                                 <h5 className="fw-semibold mb-3" style={{ color: "var(--secondary-color)" }}>Support</h5>
                                 <p><a href="#" className="text-muted text-decoration-none">Contact us</a></p>
                                 <p><a href="#" className="text-muted text-decoration-none">Support portal</a></p>
@@ -59,7 +59,7 @@ export default function Footer() {
                                 <p><a href="#" className="text-muted text-decoration-none">Z-Connect blog</a></p>
                                 <p><a href="#" className="text-muted text-decoration-none">Downloads</a></p>
                             </div>
-                            <div className="col-12 col-md-3 mb-2 gap-2 px-3">
+                            <div className="col-6 col-md-3 mb-2 gap-2 px-3">
                                 <h5 className="fw-semibold mb-3" style={{ color: "var(--secondary-color)" }}>Company</h5>
                                 <p><a href="#" className="text-muted text-decoration-none">About</a></p>
                                 <p><a href="#" className="text-muted text-decoration-none">Philosophy</a></p>
@@ -71,7 +71,7 @@ export default function Footer() {
                                 <p><a href="#" className="text-muted text-decoration-none">Referral program</a></p>
 
                             </div>
-                            <div className="col-12 col-md-3 mb-2 gap-2 px-3">
+                            <div className="col-6 col-md-3 mb-0 gap-2 px-3">
                                 <h5 className="fw-semibold mb-3" style={{ color: "var(--secondary-color)" }}>Quick links</h5>
                                 <p><a href="#" className="text-muted text-decoration-none">Upcoming IPOs</a></p>
                                 <p><a href="#" className="text-muted text-decoration-none">Brokerage charges</a></p>

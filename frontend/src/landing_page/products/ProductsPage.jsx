@@ -1,21 +1,25 @@
-import Navbar from "../Navbar";
-import Footer from "../Footer";
+
 import Hero from "./Hero";
-import LeftSection from "./LeftSection";
-import RightSection from "./RightSection";
 import Universe from "./Universe";
 import OpenAccount from "../OpenAccount";
+import Kite from "./Kite";
+import Console from "./Console";
+import Coin from "./Coin";
+import KiteConnect from "./KiteConnect";
+import Varsity from "./Varsity";
 
 export default function ProductsPage() {
     return (
         <>
-            <Navbar />
+            
             <Hero />
-            <LeftSection />
-            <RightSection />
+            <Kite/>
+            <Console/>
+            <Coin/>
+            <KiteConnect/>
+            <Varsity/>
             <Universe />
-            <OpenAccount />
-            <Footer />
+
         </>
     );
 }
