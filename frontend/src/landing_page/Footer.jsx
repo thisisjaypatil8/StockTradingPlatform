@@ -18,7 +18,7 @@ export default function Footer() {
                                 <i className="fa-brands fa-instagram text-muted"></i>
                             </a>
                             <a href="#">
-                               <i class="fa-brands fa-linkedin-in text-muted"></i>
+                               <i className="fa-brands fa-linkedin-in text-muted"></i>
                             </a>
                         </div>
                         <div className="d-flex gap-3 fs-5 ">
