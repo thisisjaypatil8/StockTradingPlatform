@@ -1,40 +1,53 @@
 import { holdings } from "../data/data.js";
 import { useEffect, useState } from "react";
+import { VerticalGraph } from "./VerticalGraph.jsx";
 import axios from "axios";
 export default function Holdings() {
   const [allHoldings, setAllHoldings] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // backend se fresh holdings fetch kro
-  useEffect(() =>{
+  useEffect(() => {
     axios.get("http://localhost:5000/allHoldings")
-      .then((res) =>{
+      .then((res) => {
         setAllHoldings(res.data);
         setLoading(false);
       })
-      .catch((err) =>{
+      .catch((err) => {
         console.error("Holdings fetch failed: ", err);
         setLoading(false);
       })
-  },[]);
+  }, []);
 
-  if(loading){
+  if (loading) {
     return <div className="holdings"><p>Loading Holdings...</p></div>
   }
 
   // dynamic calculations: Total investment, current value, and Total p&l]
-    let totalInvestment = 0;
-    let totalCurrentValue = 0;
+  let totalInvestment = 0;
+  let totalCurrentValue = 0;
 
-    allHoldings.forEach((stock) =>{
-      totalInvestment += stock.avg * stock.qty;
-      totalCurrentValue += stock.price * stock.qty;
-    })
+  allHoldings.forEach((stock) => {
+    totalInvestment += stock.avg * stock.qty;
+    totalCurrentValue += stock.price * stock.qty;
+  })
 
-    const totalPnL = totalCurrentValue - totalInvestment;
-    const pnlPercentage = totalInvestment > 0 ? (totalPnL / totalInvestment * 100).toFixed(2) : 0;
-    const isOverallProfit = totalPnL >= 0;
-    
+  const totalPnL = totalCurrentValue - totalInvestment;
+  const pnlPercentage = totalInvestment > 0 ? (totalPnL / totalInvestment * 100).toFixed(2) : 0;
+  const isOverallProfit = totalPnL >= 0;
+
+  // Vertical graph data prepare kr
+  const labels = allHoldings.map((stock) => stock.name);
+
+  const data = {
+    labels,
+    datasets: [{
+      label: "Stock Price",
+      data: allHoldings.map((stock) => stock.price),
+      backgroundColor: "rgba(75, 192, 192, 0.6)",
+    }]
+  }
+
 
   return (
     <>
@@ -59,51 +72,52 @@ export default function Holdings() {
             const profClass = pnl >= 0 ? "profit" : "loss";
             const dayClass = stock.isLoss ? "loss" : "profit";
             return (
-            <tr key={stock.name} >
-              <td><strong>{stock.name}</strong></td>
-              <td>{Number(stock.qty)}</td>
-              <td>&#8377;{Number(stock.avg).toFixed(2)}</td>
-              <td>&#8377;{Number(stock.price).toFixed(2)}</td>
-              <td >&#8377;{Number(curValue).toFixed(2)}</td>
-              <td className={profClass}>&#8377;{pnl >= 0 ? `+${pnl.toFixed(2)}` : pnl.toFixed(2)}</td>
-              <td className={profClass}>{stock.net || "+0.00%"}</td>
-              <td className={dayClass}>{stock.day || "+0.00%"}</td>
-            </tr>
-            );  
+              <tr key={stock.name} >
+                <td><strong>{stock.name}</strong></td>
+                <td>{Number(stock.qty)}</td>
+                <td>&#8377;{Number(stock.avg).toFixed(2)}</td>
+                <td>&#8377;{Number(stock.price).toFixed(2)}</td>
+                <td >&#8377;{Number(curValue).toFixed(2)}</td>
+                <td className={profClass}>&#8377;{pnl >= 0 ? `+${pnl.toFixed(2)}` : pnl.toFixed(2)}</td>
+                <td className={profClass}>{stock.net || "+0.00%"}</td>
+                <td className={dayClass}>{stock.day || "+0.00%"}</td>
+              </tr>
+            );
           })}
         </table>
       </div>
 
-{/* dynamic summary Cards */}
+      {/* dynamic summary Cards */}
       <div className="row">
         <div className="col">
           <h5>
-           &#8377; {totalInvestment.toLocaleString('en-IN', {
-            minimumFractionDigits: 2, 
-            maximumFractionDigits:2,
-            
-           })}
+            &#8377; {totalInvestment.toLocaleString('en-IN', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+
+            })}
           </h5>
           <p>Total investment</p>
         </div>
         <div className="col">
           <h5>
             &#8377; {totalCurrentValue.toLocaleString('en-IN', {
-              minimumFractionDigits: 2, 
-              maximumFractionDigits:2,
-            
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+
             })}
           </h5>
           <p>Current value</p>
         </div>
         <div className="col">
           <h5>
-             {isOverallProfit ? `+${totalPnL.toFixed(2)}` : totalPnL.toFixed(2)} <span className={`pnl-percentage ${isOverallProfit ? "profit" : "loss"}`}>{pnlPercentage}%</span>
-              
+            {isOverallProfit ? `+${totalPnL.toFixed(2)}` : totalPnL.toFixed(2)} <span className={`pnl-percentage ${isOverallProfit ? "profit" : "loss"}`}>{pnlPercentage}%</span>
+
           </h5>
           <p>P&L</p>
         </div>
       </div>
+      <VerticalGraph data={data} />
     </>
   );
 };

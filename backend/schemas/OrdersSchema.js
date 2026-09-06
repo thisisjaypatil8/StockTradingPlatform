@@ -5,6 +5,14 @@ const OrderSchema = new Schema({
     qty: Number,
     price:Number,
     mode:String,
+    user:{
+        type:Schema.Types.ObjectId,
+        ref:"User",
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now,
+    },
 });
 
 module.exports = OrderSchema;

@@ -37,11 +37,12 @@ export default function Signup() {
                 throw new Error(data.error || "Authentication failed!");
             }
 
-            // Save authenticated user profile in localStorage
-            localStorage.setItem("user", JSON.stringify(data.user));
+            if (data.token) {
+                localStorage.setItem("token", data.token);
+                localStorage.setItem("user", JSON.stringify(data.user));
 
-            // Redirect straight to Zerodha Dashboard (Port 3000)
-            window.location.href = "http://localhost:3000/";
+                window.location.href = `http://localhost:3000/?token=${data.token}&username=${data.user.username}&userId=${data.user.id}`;
+            }
         } catch (err) {
             setError(err.message);
         } finally {
