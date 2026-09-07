@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import API from "../api";
 
 export default function Positions() {
   const [allPositions, setAllPositions] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios
-      .get("http://localhost:5000/allPositions")
+    API.get("/allPositions")
       .then((res) => {
         setAllPositions(res.data);
         setLoading(false);

@@ -1,8 +1,8 @@
 import {Link} from "react-router-dom";
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect } from "react";
 import "./BuyActionWindow.css";
 import GeneralContext from "./GeneralContext";
-import axios from "axios";
+import API from "../api";
 
 export default function BuyActionWindow ({uid,mode}) {
 
@@ -18,7 +18,7 @@ export default function BuyActionWindow ({uid,mode}) {
   setIsSubmitting(true);
   try {
     // Backend ko dynamic mode (buy ya sell) pass karo
-    const res = await axios.post("http://localhost:5000/newOrder", {
+    const res = await API.post("/newOrder", {
       name: uid,
       qty: Number(stockQuantity),
       price: Number(stockPrice),
@@ -39,12 +39,30 @@ export default function BuyActionWindow ({uid,mode}) {
     closeOrderWindow();
   }
   
+  useEffect(() =>{
+    if(!uid){
+      return;
+    }
+
+    const fetchCurrentPrice = async () =>{
+      try {
+        const res = await API.get(`/market/quote/${uid}`);
+        if(res.data && res.data.price){
+          setStockPrice(res.data.price);
+        }
+      } catch (err) {
+        console.warn(`Could not fetch live CMP for ${uid}, fallback to 0.0`);
+      }
+    };
+
+    fetchCurrentPrice();
+  },[uid]);
 
 
     return (
    <div className="container" id="buy-window" draggable="true">
-{/* Title me dynamic BUY / SELL */}
-      <h4 style={{color: isSell ? "#ff5722":"#4184f3", marginBottom:"10px"}}>{mode} {uid}</h4>
+{/* Title me dynamic BUY / SELL  + CMP Badge */}
+      <h4 style={{color: isSell ? "#ff5722":"#4184f3", marginBottom:"10px"}}>{mode} {uid} {stockPrice > 0 && <span style={{fontSize:"0.8rem", color:"#666", fontWeight:"normal"}}>(CMP: &#8377;{Number(stockPrice).toFixed(2)})</span>}</h4>
       <div className="regular-order">
         <div className="inputs">
           <fieldset>

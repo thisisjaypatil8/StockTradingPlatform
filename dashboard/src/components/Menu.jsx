@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { json, Link } from "react-router-dom";
 export default function Menu() {
 
   const [selectedMenu, setSelectedMenu] = useState("Dashboard");
@@ -16,6 +16,19 @@ export default function Menu() {
 
   const menuClass = "menu";
   const activeMenuClass = "menu selected";
+
+
+  //1. Logged in user ka naam nikalo
+  const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+  const displayName = storedUser.username ? storedUser.username.toUpperCase() : "TRADER";
+  const avatarInitials = displayName.slice(0, 2);
+
+  // Logout Handler
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.location.href="http://localhost:5173/signup";
+  };
 
   return (
     <div className="menu-container">
@@ -45,9 +58,10 @@ export default function Menu() {
           </li>
         </ul>
         <hr />
-        <div className="profile" >
-          <div className="avatar">ZU</div>
-          <p className="username">USERID</p>
+        <div className="profile"onClick={handleLogout} title="Click to Logout" 
+        style={{cursor:"pointer"}} >
+          <div className="avatar">{avatarInitials}</div>
+          <p className="username">{displayName}</p>
         </div>
       </div>
     </div>

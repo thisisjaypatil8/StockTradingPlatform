@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
-import axios from "axios";
+import API from "../api";
 
 export default function Orders() {
 
@@ -9,7 +9,7 @@ export default function Orders() {
 
   // Compo load hote hi backend se saare orders mangwao
   useEffect(() => {
-    axios.get("http://localhost:5000/allOrders")
+    API.get("/allOrders")
       .then((res) => {
         setAllOrders(res.data);
         setLoading(false);

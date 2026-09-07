@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import API from "../api";
 export default function Summary() {
 
   const [allHoldings, setAllHoldings] = useState([]);
-  const [loading, setLoading] =useState(true);
+  const [loading, setLoading] = useState(true);
 
   // bringing live holdings from backend to show it in real time
   useEffect(() => {
-    axios.get("http://localhost:5000/allHoldings")
+    API.get("/allHoldings")
       .then((res) => {
         setAllHoldings(res.data);
         setLoading(false);

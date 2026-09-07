@@ -1,14 +1,14 @@
 import { holdings } from "../data/data.js";
 import { useEffect, useState } from "react";
 import { VerticalGraph } from "./VerticalGraph.jsx";
-import axios from "axios";
+import API from "../api.js";
 export default function Holdings() {
   const [allHoldings, setAllHoldings] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // backend se fresh holdings fetch kro
   useEffect(() => {
-    axios.get("http://localhost:5000/allHoldings")
+    API.get("/allHoldings")
       .then((res) => {
         setAllHoldings(res.data);
         setLoading(false);
@@ -55,6 +55,7 @@ export default function Holdings() {
 
       <div className="order-table">
         <table>
+          <thead>
           <tr>
             <th>Instrument</th>
             <th>Qty.</th>
@@ -65,7 +66,9 @@ export default function Holdings() {
             <th>Net chg.</th>
             <th>Day chg.</th>
           </tr>
+          </thead>
 
+          <tbody>
           {allHoldings.map((stock) => {
             const curValue = stock.price * stock.qty;
             const pnl = curValue - (stock.avg * stock.qty);
@@ -84,6 +87,7 @@ export default function Holdings() {
               </tr>
             );
           })}
+          </tbody>
         </table>
       </div>
 
