@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import API from "../api";
+import { calculatePortfolioMetrics, formatK } from "../utils/portfolioMath";
+
 export default function Summary() {
 
   const [allHoldings, setAllHoldings] = useState([]);
@@ -18,36 +20,16 @@ export default function Summary() {
       });
   },[]);
 
-  // helper function: Zerodha style compact current formatting
-  const formatK = (val) => {
-    if(val === undefined || val === null || isNaN(val)) return "0.00";
-    const absVal = Math.abs(val);
-    if(absVal >= 1000){
-      return (val/1000).toFixed(2)+"k";
-    }
-    return Number(val).toFixed(2);
-  }
-
-
-// dynamic calculation across all live holdings
-  let totalInvestment = 0;
-  let totalCurrentValue = 0;
-
-  allHoldings.forEach((stock) =>{
-    totalInvestment += (stock.qty || 0) * (stock.avg || 0);
-    totalCurrentValue += (stock.qty || 0) * (stock.price || 0);
-  });
-
-  const totalPnL = totalCurrentValue - totalInvestment;
-  const pnlPercentage = totalInvestment > 0 ? (totalPnL/totalInvestment*100).toFixed(2) : "0.00";
-
-  const isProfit = totalPnL >= 0;
-
-
-  // equity/ funds calculations 
-  const openingBalance = 100000;
-  const marginsUsed = totalInvestment;
-  const marginAvailable = Math.max(0, openingBalance - marginsUsed);
+const {
+  openingBalance,
+  totalInvestment,
+  totalCurrentValue,
+  totalPnL,
+  pnlPercentage,
+  isProfit,
+  marginsUsed,
+  marginAvailable,
+} = calculatePortfolioMetrics(allHoldings);
 
   if(loading){
     return (

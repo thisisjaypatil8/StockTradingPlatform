@@ -1,7 +1,7 @@
-import { holdings } from "../data/data.js";
 import { useEffect, useState } from "react";
 import { VerticalGraph } from "./VerticalGraph.jsx";
 import API from "../api.js";
+import { calculatePortfolioMetrics } from "../utils/portfolioMath.js";
 export default function Holdings() {
   const [allHoldings, setAllHoldings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,18 +23,13 @@ export default function Holdings() {
     return <div className="holdings"><p>Loading Holdings...</p></div>
   }
 
-  // dynamic calculations: Total investment, current value, and Total p&l]
-  let totalInvestment = 0;
-  let totalCurrentValue = 0;
-
-  allHoldings.forEach((stock) => {
-    totalInvestment += stock.avg * stock.qty;
-    totalCurrentValue += stock.price * stock.qty;
-  })
-
-  const totalPnL = totalCurrentValue - totalInvestment;
-  const pnlPercentage = totalInvestment > 0 ? (totalPnL / totalInvestment * 100).toFixed(2) : 0;
-  const isOverallProfit = totalPnL >= 0;
+const {
+  totalInvestment,
+  totalCurrentValue,
+  totalPnL,
+  pnlPercentage,
+  isOverallProfit,
+} = calculatePortfolioMetrics(allHoldings);
 
   // Vertical graph data prepare kr
   const labels = allHoldings.map((stock) => stock.name);

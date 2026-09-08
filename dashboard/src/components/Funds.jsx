@@ -1,13 +1,14 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
-import axios from "axios";
+import API from "../api";
+import { calculatePortfolioMetrics, formatK } from "../utils/portfolioMath";
 export default function Funds() {
 
    const [allHoldings, setAllHoldings] = useState([]);
    const [loading, setLoading] = useState(true);
 
    useEffect(() =>{
-    axios.get("http://localhost:5000/allHoldings")
+    API.get("/allHoldings")
       .then((res) =>{
         setAllHoldings(res.data);
         setLoading(false);
@@ -19,23 +20,7 @@ export default function Funds() {
    },[]);
 
 
-   let totalInvestment = 0;
-   allHoldings.forEach((stock) =>{
-    totalInvestment += (stock.qty || 0) * (stock.avg || 0);
-   });
-
-   const openingBalance = 100000;
-   const usedMargin = totalInvestment;
-   const availableMargin = Math.max(0, openingBalance - usedMargin);
-
-   const formatK = (val) => {
-    if(val === undefined || val === null || isNaN(val)) return "0.00";
-    const absVal = Math.abs(val);
-    if(absVal >= 1000){
-      return (val/1000).toFixed(2)+"k";
-    }
-    return Number(val).toFixed(2);
-   };
+const { availableMargin, usedMargin, openingBalance} = calculatePortfolioMetrics(allHoldings);
 
   
   return (
