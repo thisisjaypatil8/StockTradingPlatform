@@ -5,6 +5,11 @@ const OrderSchema = new Schema({
     qty: Number,
     price:Number,
     mode:String,
+    product:{
+        type:String,
+        enum:["CNC", "MIS"],
+        default: "CNC",
+    },
     user:{
         type:Schema.Types.ObjectId,
         ref:"User",

@@ -7,9 +7,48 @@ export default function Positions() {
 
   useEffect(() => {
     API.get("/allPositions")
-      .then((res) => {
-        setAllPositions(res.data);
+      .then(async (res) => {
+        const positionsData = res.data || [];
+        setAllPositions(positionsData);
         setLoading(false);
+
+
+        if(positionsData.length === 0) return;
+        
+        //fetch live LTP of each stock in parallel
+
+        const quotePromises = positionsData.map((stock) =>
+          API.get(`market/quote/${stock.name}`)
+          .then((qRes) => ({ name: stock.name, quote: qRes.data}))
+          .catch(() => ({name: stock.name, quote: null}))
+        );
+
+        const results = await Promise.allSettled(quotePromises);
+
+        // prepare quoteMap for fast lookups
+        const quoteMap = {};
+        results.forEach((r) =>{
+          if(r.status === 'fulfilled' && r.value?.quote){
+            quoteMap[r.value.name] = r.value.quote;
+          }
+        });
+
+        // update live prices in positions with portfolio math
+        setAllPositions((prevPositions) => 
+         prevPositions.map((stock) => {
+          const live = quoteMap[stock.name];
+          if(!live) return stock;
+
+          const livePrice = Number(live.price) || stock.price;
+          
+          return {
+            ...stock,
+            price: livePrice,
+            day: live.percent || stock.day,
+            isLoss: live.isLoss !== undefined ? live.isLoss : stock.isLoss,
+          };
+         })
+        );
       })
       .catch((err) => {
         console.error("Positions fetch failed: ", err);

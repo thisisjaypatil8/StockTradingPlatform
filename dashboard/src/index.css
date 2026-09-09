@@ -543,6 +543,22 @@ hr {
   color: rgb(72, 194, 55);
 }
 
+.data .first .loss{
+  color: rgb(250, 118, 78);
+}
+
+.data .first .loss small {
+  color: rgb(250, 118, 78);
+}
+
+.profit {
+  color: rgb(72, 194, 55) !important;
+}
+
+.loss {
+  color: rgb(250, 118, 78) !important;
+}
+
 .data hr {
   border-left: 0.6px solid rgb(243, 242, 242);
   height: 70px;

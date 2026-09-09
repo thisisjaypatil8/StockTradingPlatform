@@ -1,4 +1,5 @@
 import './App.css'
+import { AuthProvider } from './context/AuthContext'
 import HomePage from './landing_page/home/HomePage'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Signup from './landing_page/signup/Signup'
@@ -9,14 +10,16 @@ import SupportPage from './landing_page/support/SupportPage'
 import Navbar from './landing_page/Navbar'
 import Footer from './landing_page/Footer'
 import NotFound from './landing_page/NotFound'
+
 function App() {
 
   return (
-    <BrowserRouter>
-      <Navbar />
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/signup" element={<Signup />} />
+    <AuthProvider>
+      <BrowserRouter>
+        <Navbar />
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/signup" element={<Signup />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/pricing" element={<PricingPage />} />
@@ -25,6 +28,7 @@ function App() {
       </Routes>
       <Footer />
     </BrowserRouter>
+    </AuthProvider>
   )
 }
 

@@ -9,6 +9,7 @@ export default function BuyActionWindow ({uid,mode}) {
   const [stockQuantity, setStockQuantity] = useState(1);
   const [stockPrice, setStockPrice] = useState(0.0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [productType, setProductType] = useState("CNC");
 
  const {closeOrderWindow} = useContext(GeneralContext);
  const isSell = mode === "SELL";
@@ -23,6 +24,7 @@ export default function BuyActionWindow ({uid,mode}) {
       qty: Number(stockQuantity),
       price: Number(stockPrice),
       mode:mode,
+      product: productType,
     });
     alert(res.data.message || `${mode} order placed Successfully!`);
     closeOrderWindow();
@@ -62,6 +64,19 @@ export default function BuyActionWindow ({uid,mode}) {
     return (
    <div className="container" id="buy-window" draggable="true">
 {/* Title me dynamic BUY / SELL  + CMP Badge */}
+
+      <div className="order-validity" style={{marginBottom:"12px"}}>
+        <label style={{marginRight:"16px", cursor:"pointer", fontWeight:productType === "CNC" ? "bold" : "normal"}}><input type="radio"
+         name="productType" value="CNC" checked={productType === "CNC"} 
+         onChange={(e) => setProductType(e.target.value)}  />
+          CNC <span>(Delivery)</span>
+        </label>
+        <label style={{marginRight:"16px", cursor:"pointer", fontWeight:productType === "MIS" ? "bold" : "normal"}}>
+          <input name="productType" type="radio" value="MIS" checked={productType === "MIS"}
+          onChange={(e) => setProductType(e.target.value)} />MIS <span>(Intraday)</span>
+        </label>
+      </div>
+
       <h4 style={{color: isSell ? "#ff5722":"#4184f3", marginBottom:"10px"}}>{mode} {uid} {stockPrice > 0 && <span style={{fontSize:"0.8rem", color:"#666", fontWeight:"normal"}}>(CMP: &#8377;{Number(stockPrice).toFixed(2)})</span>}</h4>
       <div className="regular-order">
         <div className="inputs">

@@ -1,6 +1,8 @@
-import React, { useState } from "react";
+    import { useState } from "react";
+    import { useAuth } from "../../context/AuthContext";
 
 export default function Signup() {
+    const { isLoggedIn, user, logout, dashboardUrl, login} = useAuth();
     const [isLoginMode, setIsLoginMode] = useState(false);
     const [formData, setFormData] = useState({
         username: "",
@@ -38,8 +40,7 @@ export default function Signup() {
             }
 
             if (data.token) {
-                localStorage.setItem("token", data.token);
-                localStorage.setItem("user", JSON.stringify(data.user));
+                login(data.token, data.user);
 
                 window.location.href = `http://localhost:3000/?token=${data.token}&username=${data.user.username}&userId=${data.user.id}`;
             }
@@ -69,7 +70,29 @@ export default function Signup() {
 
                 {/* Right Column: Clean Auth Card */}
                 <div className="col-12 col-md-5 col-lg-4 offset-md-1">
-                    <div className="card shadow-sm border-0 p-4 p-md-4 rounded-3">
+                    {isLoggedIn ?  (
+                        // logged-in state card
+                        <div className="card shadow-sm border-0 p-4 rouded-3">
+                            <div className="mb-3"> 
+                                <span className="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill small fw-medium">
+                                    <i className="fa-solid fa-circle-check me-1"></i> Active Session
+                                </span>
+                            </div>
+                            <h4 className="fw-semibold text-dark mb-1">
+                                Welcome, {user?.username}!
+                            </h4>
+                            <p className="text-muted small mb-4">
+                                {user?.email}
+                            </p>
+                            <a href={dashboardUrl} className="btn btn-primary w-100 py-2 fw-medium shadow-sm mb-2 text-decoration-none" style={{backgroundColor:"#387ed1", borderColor:"#387ed1"}}>
+                                Go to Kite Dashboard <i className="fa-solid fa-arrow-right ms-1"></i>
+                            </a>
+                            <button type="button" onClick={logout} className="btn btn-outline-danger w-100 py-2 fw-medium">
+                                Log out & Switch Account
+                            </button>
+                        </div>
+                    ):(
+                         <div className="card shadow-sm border-0 p-4 p-md-4 rounded-3">
                         <h3 className="fw-semibold text-dark mb-1">
                             {isLoginMode ? "Login" : "Sign Up"}
                         </h3>
@@ -169,6 +192,8 @@ export default function Signup() {
                             </p>
                         </div>
                     </div>
+                    )}
+                   
                 </div>
             </div>
         </div>
