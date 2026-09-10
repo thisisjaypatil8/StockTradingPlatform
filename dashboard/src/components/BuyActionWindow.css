@@ -1,3 +1,4 @@
+
 .container {
     --radius: 4px;
     width: 40%;
@@ -218,4 +219,33 @@
     background: #9b9b9b;
     color: #fff;
   }
+
+@media (max-width:768px) {
+  .container{
+    width: 94% !important;
+    left: 3% !important;
+    right: 3% !important;
+    bottom: 15px !important;
+    height:auto !important;
+    max-height: 85vh !important;
+    position: fixed !important;
+    box-shadow: 0px 8px 30px rgb(0,0, 0, 0.35) !important;
+    overflow-y: scroll !important;
+  }
+
+  .regular-order{
+    padding: 12px 16px !important;
+  }
+
+  .inputs{
+    justify-content: space-around !important;
+  }
+
+  .buttons{
+    padding: 12px 16px !important;
+    top: 0 !important;
+    margin-top: 10px;
+  }
+}
+
   

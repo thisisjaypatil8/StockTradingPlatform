@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import API from "../api";
+import styles from "./Positions.module.css";
 
 export default function Positions() {
   const [allPositions, setAllPositions] = useState([]);
@@ -58,17 +59,17 @@ export default function Positions() {
 
   if (loading) {
     return (
-      <div className="positions">
+      <div className={styles.loading}>
         <p>Loading Positions...</p>
       </div>
     );
   }
 
   return (
-    <>
-      <h3 className="title">Positions ({allPositions.length})</h3>
+    <div className={styles.positionsContainer}>
+      <h3 className={styles.title}>Positions ({allPositions.length})</h3>
 
-      <div className="order-table">
+      <div className={styles.orderTable}>
         <table>
           <thead>
             <tr>
@@ -85,12 +86,12 @@ export default function Positions() {
             {allPositions.map((stock) => {
               const curValue = stock.price * stock.qty;
               const pnl = curValue - stock.avg * stock.qty;
-              const profClass = pnl >= 0 ? "profit" : "loss";
-              const dayClass = stock.isLoss ? "loss" : "profit";
+              const profClass = pnl >= 0 ? styles.profit : styles.loss;
+              const dayClass = stock.isLoss ? styles.loss : styles.profit;
               return (
                 <tr key={stock._id || stock.name}>
                   <td>{stock.product}</td>
-                  <td><strong>{stock.name}</strong></td>
+                  <td><strong className={styles.instrumentName}>{stock.name}</strong></td>
                   <td>{stock.qty}</td>
                   <td>&#8377;{Number(stock.avg).toFixed(2)}</td>
                   <td>&#8377;{Number(stock.price).toFixed(2)}</td>
@@ -104,7 +105,7 @@ export default function Positions() {
           </tbody>
         </table>
       </div>
-    </>
+    </div>
   );
 }
 

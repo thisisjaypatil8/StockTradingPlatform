@@ -10,14 +10,27 @@ const resolveSymbol = (sym) => {
     return resolved.includes(".") ? resolved : `${resolved}.NS`;
 }
 
+// Simple In-Memory TTL Cache for 1 Minute
+const quoteCache = new Map();
+const CACHE_TTL_MS = 60 * 1000; // 1 minute freshness
+
+// Graph / Chart data TTL Cache of 5 minutes
+const historyCache = new Map();
+const HISTORY_CACHE_TTL_MS = 4 * 60 * 1000; // 5 minutes freshness
+
+
 // Yahoo finance Live market Quote Proxy
 module.exports.getQuote = async (req, res) => {
-
     const { symbol } = req.params;   // INFY or Reliance
-
     const yahooSymbol = resolveSymbol(symbol);
 
     // yahoo finance fetch call
+    const cached = quoteCache.get(yahooSymbol);
+    if(cached && Date.now() < cached.expiry){
+        //Cache hit! Zero external API calls!
+        return res.status(200).json(cached.data);
+    }
+    //2. Cache miss or expired - Fetch from Yahoo finance
     const response = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=1d&interval=5m`, {
         headers: { "User-Agent": "Mozilla/5.0" }
     });
@@ -44,7 +57,7 @@ module.exports.getQuote = async (req, res) => {
     const percentChange = previousClose ? ((change / previousClose) * 100).toFixed(2) : "0.00";
 
     // 5. for frontend Clean formatted response
-    res.status(200).json({
+    const formattedResponse = {
         symbol: meta.symbol,
         name: symbol.toUpperCase(),
         price: Number(currentPrice.toFixed(2)),
@@ -53,7 +66,15 @@ module.exports.getQuote = async (req, res) => {
         percent: `${change >= 0 ? "+" : ""}${percentChange}%`,
         isLoss: change < 0,
         currency: meta.currency || "INR",
+    };
+
+    //3. Save into cache with 1 min expiry
+    quoteCache.set(yahooSymbol, {
+        data: formattedResponse,
+        expiry: Date.now() + CACHE_TTL_MS,
     });
+
+    res.status(200).json(formattedResponse);
 
 };
 
@@ -65,7 +86,15 @@ module.exports.getHistory = async (req, res) => {
     const interval = req.query.interval || "5m";
 
     const yahooSymbol = resolveSymbol(symbol);
+    const cacheKey = `${yahooSymbol}_${range}_${interval}`;
+    
+    //1. Check Cache History
+    const cached = historyCache.get(cacheKey);
+    if(cached && Date.now() < cached.expiry){
+        return res.status(200).json(cached.data);
+    }
 
+    //2. Cache miss - Fetch from Yahoo
     const response = await fetch(
         `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=${range}&interval=${interval}`,
         {
@@ -114,7 +143,7 @@ module.exports.getHistory = async (req, res) => {
     const previousClose = meta.chartPreviousClose || meta.previousClose || currentPrice;
     const change = currentPrice - previousClose;
 
-    res.status(200).json({
+    const historyData = {
         symbol: meta.symbol,
         name: symbol.toUpperCase(),
         currentPrice: Number(currentPrice.toFixed(2)),
@@ -122,6 +151,14 @@ module.exports.getHistory = async (req, res) => {
         isLoss: change < 0,
         labels: formattedLabels,
         prices: formattedPrices,
-    })
+    };
+
+    // Save into history cache
+    historyCache.set(cacheKey, {
+        data: historyData, 
+        expiry: Date.now() + HISTORY_CACHE_TTL_MS
+    });
+
+    return res.status(200).json(historyData);
 
 };

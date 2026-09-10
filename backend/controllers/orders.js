@@ -9,7 +9,7 @@ module.exports.getAllOrders = async (req, res) => {
 };
 
 module.exports.createOrder = async (req, res) => {
-    const { name, qty, price, mode, product="CNC" } = req.body;
+    const { name, qty, price, mode, product = "CNC" } = req.body;
     const orderQty = Number(qty);
     const orderPrice = Number(price);
 
@@ -29,7 +29,7 @@ module.exports.createOrder = async (req, res) => {
     await newOrder.save();
 
     if (product === "CNC") {
-         const existingHolding = await Holdings.findOne({ name, user: req.user.id });
+        const existingHolding = await Holdings.findOne({ name, user: req.user.id });
         if (mode === "BUY") {
             if (existingHolding) {
                 const totalCost = (existingHolding.qty * existingHolding.avg) +
@@ -71,52 +71,90 @@ module.exports.createOrder = async (req, res) => {
         }
     } else {
         // MIS product
-         const existingPosition = await Positions.findOne({ name, user: req.user.id, product });
-        if (mode === "BUY") {
-            if(!existingPosition){
-                const newPosition = new Positions({
-                    name,
-                    qty: orderQty,
-                    avg: orderPrice,
-                    price: orderPrice,
-                    net: "+0.00%",
-                    day: "+0.00%",
-                    isLoss: false,
-                    user: req.user.id,    // owner attached
-                    product:"MIS",
-                });
-                await newPosition.save();
-            }else{
-                const totalCost = (existingPosition.qty * existingPosition.avg) +
-                (orderQty * orderPrice);
-                const totalQty = existingPosition.qty + orderQty;
-                const newAvg = totalCost / totalQty;
+        let existingPosition = await Positions.findOne({ name, user: req.user.id, product: "MIS" });
 
-                existingPosition.qty = totalQty;
-                existingPosition.avg = Number(newAvg.toFixed(2));
-                existingPosition.price = orderPrice; // Latest market price Update
-                await existingPosition.save();
+        if (!existingPosition) {
+            const isBuy = mode === "BUY";
+
+            existingPosition = new Positions({
+                name,
+                product: "MIS",
+                user: req.user.id,
+                qty: isBuy ? orderQty : -orderQty,
+                netQty: isBuy ? orderQty : -orderQty,
+                buyQty: isBuy ? orderQty : 0,
+                buyAvg: isBuy ? orderPrice : 0,
+                sellQty: isBuy ? 0 : orderQty,
+                sellAvg: isBuy ? 0 : orderPrice,
+                avg: orderPrice,
+                price: orderPrice,
+                realizedPnL: 0,
+                net: "+0.00%",
+                day: "+0.00%",
+                isLoss: false,
+            });
+            await existingPosition.save();
+        } else {
+            // Position exists - calculate long, short, averaging & Realized P&L
+            const prevNetQty = existingPosition.netQty !== undefined ? existingPosition.netQty : existingPosition.qty;
+            let realizedDiff = 0;
+            if (mode === "BUY") {
+                // If previously Short, buying is covering the short
+                if (prevNetQty < 0) {
+                    const shortCoverQty = Math.min(orderQty, Math.abs(prevNetQty));
+                    realizedDiff += (existingPosition.sellAvg - orderPrice) * shortCoverQty;
+                }
+
+                // Update cumulative buy  volume & weighted buy average
+                const prevBuyTotal = (existingPosition.buyQty || 0) * (existingPosition.buyAvg || 0);
+                const newBuyTotal = prevBuyTotal + (orderQty * orderPrice);
+                const newBuyQty = (existingPosition.buyQty || 0) + orderQty;
+
+                existingPosition.buyQty = newBuyQty;
+                existingPosition.buyAvg = Number((newBuyTotal / newBuyQty).toFixed(2));
+            } else if (mode === "SELL") {
+                // if previously Long, selling is squaring off the long
+                if (prevNetQty > 0) {
+                    const longExitQty = Math.min(orderQty, prevNetQty);
+                    realizedDiff += (orderPrice - existingPosition.buyAvg) * longExitQty;
+                }
+
+                // Update cumulative sell volume & weighted sell average
+                const prevSellTotal = (existingPosition.sellQty || 0) * (existingPosition.sellAvg || 0);
+                const newSellTotal = prevSellTotal + (orderQty * orderPrice);
+                const newSellQty = (existingPosition.sellQty || 0) + orderQty;
+
+                existingPosition.sellAvg = Number((newSellTotal / newSellQty).toFixed(2));
+                existingPosition.sellQty = newSellQty;
             }
-        }else{
-            // MIS Sell
-            if(!existingPosition || existingPosition.qty < orderQty){
-                throw new ExpressError(400, `Insufficient position! You only have ${existingPosition ? existingPosition.qty: 0} shares of ${name} in MIS.`);
+
+            // Lock in realized profit/loss
+            existingPosition.realizedPnL = Number(((existingPosition.realizedPnL || 0) + realizedDiff).toFixed(2));
+
+            //Calculate new Net Quantity
+            const newNetQty = existingPosition.buyQty - existingPosition.sellQty;
+            existingPosition.netQty = newNetQty;
+            existingPosition.qty = newNetQty;
+
+            // Effective const price: long = buyAvg, Short = sellAvg
+            if (newNetQty > 0) {
+                existingPosition.avg = existingPosition.buyAvg;
+            } else if (newNetQty < 0) {
+                existingPosition.avg = existingPosition.sellAvg;
+            } else {
+                existingPosition.avg = existingPosition.buyAvg || existingPosition.sellAvg || orderPrice;
             }
-            if(existingPosition.qty === orderQty){
-                await Positions.deleteOne({ _id: existingPosition._id });
-            }else{
-                existingPosition.qty -= orderQty;
-                existingPosition.price = orderPrice;
-                await existingPosition.save();
-            }   
+
+            existingPosition.price = orderPrice;
+            await existingPosition.save();
         }
     }
-
-
     res.status(200).json({
         success: true,
         message: `${mode} order executed & holdings updated successfuly!`,
         order: newOrder
     });
-};
+}
+
+
 

@@ -19,15 +19,16 @@ function App() {
         <Navbar />
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/signup" element={<Signup />} />
-        <Route path="/about" element={<AboutPage />} />
-        <Route path="/products" element={<ProductsPage />} />
-        <Route path="/pricing" element={<PricingPage />} />
-        <Route path="/support" element={<SupportPage />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-      <Footer />
-    </BrowserRouter>
+          <Route path="/signup" element={<Signup mode = "signup" />} />
+          <Route path='/login' element={<Signup mode = "login" />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/products" element={<ProductsPage />} />
+          <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/support" element={<SupportPage />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+        <Footer />
+      </BrowserRouter>
     </AuthProvider>
   )
 }

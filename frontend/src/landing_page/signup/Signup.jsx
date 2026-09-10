@@ -1,9 +1,13 @@
     import { useState } from "react";
     import { useAuth } from "../../context/AuthContext";
+    import { useNavigate, useLocation } from "react-router-dom";
 
 export default function Signup() {
+    const location = useLocation();
+    const navigate = useNavigate();
+
+    const isLoginMode = location.pathname === "/login";
     const { isLoggedIn, user, logout, dashboardUrl, login} = useAuth();
-    const [isLoginMode, setIsLoginMode] = useState(false);
     const [formData, setFormData] = useState({
         username: "",
         email: "",
@@ -181,7 +185,7 @@ export default function Signup() {
                                 <button
                                     type="button"
                                     onClick={() => {
-                                        setIsLoginMode(!isLoginMode);
+                                        navigate(isLoginMode ? "/signup" : "/login");
                                         setError("");
                                     }}
                                     className="btn btn-link p-0 text-decoration-none small fw-semibold"

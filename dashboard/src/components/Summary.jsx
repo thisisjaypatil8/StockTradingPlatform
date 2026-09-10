@@ -1,24 +1,11 @@
-import { useState, useEffect } from "react";
-import API from "../api";
+
 import { calculatePortfolioMetrics, formatK } from "../utils/portfolioMath";
+import { usePortfolio } from "../context/PortfolioContext";
+import styles from "./Summary.module.css";
 
 export default function Summary() {
 
-  const [allHoldings, setAllHoldings] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  // bringing live holdings from backend to show it in real time
-  useEffect(() => {
-    API.get("/allHoldings")
-      .then((res) => {
-        setAllHoldings(res.data);
-        setLoading(false);
-      })
-      .catch((err) =>{
-        console.error("Failed to fetch holdings for Summary:", err);
-        setLoading(false);
-      });
-  },[]);
+ const { allHoldings, loading} = usePortfolio();
 
 const {
   openingBalance,
@@ -42,24 +29,24 @@ const {
 
   return (
     <>
-      <div className="username">
+      <div className={styles.username}>
         <h6>Hi, User!</h6>
-        <hr className="divider" />
+        <hr className={styles.divider} />
       </div>
 
-      <div className="section">
+      <div className={styles.section}>
         <span>
           <p>Equity</p>
         </span>
 
-        <div className="data">
-          <div className="first">
+        <div className={styles.data}>
+          <div className={styles.first}>
             <h3>{formatK(marginAvailable)}</h3>
             <p>Margin available</p>
           </div>
           <hr />
 
-          <div className="second">
+          <div className={styles.second}>
             <p>
               Margins used <span>{formatK(marginsUsed)}</span>{" "}
             </p>
@@ -68,24 +55,25 @@ const {
             </p>
           </div>
         </div>
-        <hr className="divider" />
+        <hr className={styles.divider} />
       </div>
 
-      <div className="section">
+      <div className={styles.section}>
         <span>
           <p>Holdings ({allHoldings.length})</p>
         </span>
 
-        <div className="data">
-          <div className="first">
-            <h3 className={isProfit ? "profit" : "loss"} >
-              {formatK(totalPnL)}{" "} <small>{isProfit ? `+${pnlPercentage}%` : `${pnlPercentage}%`}</small>{" "}
+        <div className={styles.data}>
+          <div className={styles.first}>
+            <h3 className={isProfit ? styles.profit : styles.loss}>
+              {isProfit ? `+${formatK(totalPnL)}` : formatK(totalPnL)}{" "}
+              <small className={styles.small}>{isProfit ? `+${pnlPercentage}%` : `${pnlPercentage}%`}</small>
             </h3>
             <p>P&L</p>
           </div>
           <hr />
 
-          <div className="second"> 
+          <div className={styles.second}> 
             <p>
               Current Value <span>{formatK(totalCurrentValue)}</span>{" "}
             </p>
@@ -94,7 +82,7 @@ const {
             </p>
           </div>
         </div>
-        <hr className="divider" />
+        <hr className={styles.divider} />
       </div>
     </>
   );

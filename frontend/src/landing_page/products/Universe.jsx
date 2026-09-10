@@ -1,7 +1,9 @@
 import Platforms from "./Platforms";
+import { useAuth } from "../../context/AuthContext";
 import { Link } from "react-router-dom";
 
 export default function Universe() {
+    const { isLoggedIn, dashboardUrl } = useAuth();
     return (
         <div className="container py-5 my-md-4">
             <div className="text-center mb-5">
@@ -23,13 +25,21 @@ export default function Universe() {
             <Platforms />
 
             <div className="text-center mt-5 mb-4">
-                <Link
-                    to="/signup"
-                    className="btn btn-primary px-4 py-2 fw-semibold fs-5"
-                    style={{ backgroundColor: "#387ED1", borderColor: "#387ED1" }}
-                >
-                    Sign up for free
+                {isLoggedIn ? (
+                    <a href={dashboardUrl}
+                        className='btn px-4 py-2 mt-3 text-white fw-semibold fs-5 text-decoration-none shadow-sm'
+                        style={{ backgroundColor: "#387ED1", minWidth: "220px", width: "fit-content", margin: "0 auto" }}
+                    >Go to Dashboard <i className='fa-solid fa-arrow-right ms-2 fs-6'></i></a>
+
+                ) : (
+                    <Link
+                        to="/signup"
+                        className="btn btn-primary px-4 py-2 fw-semibold fs-5"
+                        style={{ backgroundColor: "#387ED1", borderColor: "#387ED1" }}
+                    >
+                        Sign up for free
                 </Link>
+            )}
             </div>
         </div>
     );

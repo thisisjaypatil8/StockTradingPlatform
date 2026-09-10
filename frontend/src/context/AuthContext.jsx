@@ -15,6 +15,17 @@ export function AuthProvider({children}){
 
     // cross tab-sync
     useEffect(() => {
+
+        // 1. Cross-port logout signal detector
+        const urlParams = new URLSearchParams(window.location.search);
+        if(urlParams.get("action") === "logout"){
+            logout();
+
+            // clean the url without Refreshing
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        // 2. Cross-tab storage change handler
         const handleStorageChange = () =>{
             const currentToken = localStorage.getItem("token");
             setToken(currentToken);

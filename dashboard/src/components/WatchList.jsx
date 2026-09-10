@@ -4,13 +4,20 @@ import KeyboardArrowUp from "@mui/icons-material/KeyboardArrowUp";
 import BarChartIcon from '@mui/icons-material/BarChart';
 import MoreHoriz from "@mui/icons-material/MoreHoriz";
 import API from "../api";
-
+import styles from './WatchList.module.css';
 import { watchlist } from "../data/data";
 import { useState, useContext, useEffect } from "react";
 import GeneralContext from "./GeneralContext";
 import { DoughnutChart } from "./DoughnutChart";
 
 export default function WatchList() {
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredWatchlist = watchlist.filter((stock) =>
+    stock.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+
   const labels = watchlist.map((stock) => stock.name);
   const data =
   {
@@ -41,23 +48,25 @@ export default function WatchList() {
   }
 
   return (
-    <div className="watchlist-container">
-      <div className="search-container">
+    <div className={styles.watchlistContainer}>
+      <div className={styles.searchContainer}>
         <input
           type="text"
           name="search"
           id="search"
-          placeholder="Search eg:infy, bse, nifty fut weekly, gold mcx"
-          className="search"
+          placeholder="Search eg: INFY, RELIANCE, TCS..."
+          className={styles.search}
+          onChange={(e) => setSearchTerm(e.target.value)}
         />
-        <span className="counts"> {watchlist.length} / 50</span>
+        <span className={styles.counts}> {filteredWatchlist.length} / {watchlist.length}</span>
       </div>
 
-      <ul className="list">
-        {watchlist.map((stock) => (
+      <ul className={styles.list}>
+        {filteredWatchlist.map((stock) => (
           <WatchListItem key={stock.name} stock={stock} />
         ))}
       </ul>
+
       <DoughnutChart data={data} />
     </div>
   );
@@ -75,13 +84,13 @@ const WatchListItem = ({ stock }) => {
   });
 
   //2. As soon as Components mounts fetch live price of each stock in watchlist
-  useEffect(() =>{
+  useEffect(() => {
     let isMounted = true;
 
     const fetchLiveQuote = async () => {
       try {
         const res = await API.get(`/market/quote/${stock.name}`);
-        if(isMounted && res.data){
+        if (isMounted && res.data) {
           setLiveData({
             price: res.data.price,
             percent: res.data.percent,
@@ -99,8 +108,8 @@ const WatchListItem = ({ stock }) => {
       isMounted = false;
     };
 
-  },[stock.name]
-);
+  }, [stock.name]
+  );
 
   const handleMouseEnter = () => {
     setShowWatchlistActions(true);
@@ -111,12 +120,12 @@ const WatchListItem = ({ stock }) => {
 
   return (
     <li onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} key={stock.name}>
-      <div className="item">
-        <p className={liveData.isDown ? 'down' : 'up'}>{stock.name}</p>
-        <div className="itemInfo">
-          <span className="percent">{liveData.percent}</span>
-          {liveData.isDown ? <KeyboardArrowDown className="down" /> : <KeyboardArrowUp className="up" />}
-          <span className="price">{Number(liveData.price).toFixed(2)}</span>
+      <div className={styles.item}>
+        <p className={liveData.isDown ? styles.down : styles.up}>{stock.name}</p>
+        <div className={styles.itemInfo}>
+          <span className={`${styles.percent} ${liveData.isDown ? styles.down : styles.up}`}>{liveData.percent}</span>
+          {liveData.isDown ? <KeyboardArrowDown className={styles.down} style={{ fontSize: "1.1rem" }} /> : <KeyboardArrowUp className={styles.up} style={{ fontSize: "1.1rem" }} />}
+          <span className={`${styles.price} ${liveData.isDown ? styles.down : styles.up}`}>&#8377;{(Number(liveData.price) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
         </div>
       </div>
       {showWatchlistActions && (
@@ -135,15 +144,15 @@ const WatchListActions = ({ uid }) => {
 
   return (
 
-    <span className="actions">
-      <span>
-        <Tooltip title="Buy" placement="top" arrow TransitionComponent={Grow} ><button className="buy" onClick={() => handleOrderClick("BUY")}>Buy</button></Tooltip>
+    <span className={styles.actions}>
+      <span className={styles.actionsGroup}>
+        <Tooltip title="Buy" placement="top" arrow TransitionComponent={Grow} ><button className={styles.buy} onClick={() => handleOrderClick("BUY")}>Buy</button></Tooltip>
 
-        <Tooltip title="Sell" placement="top" arrow TransitionComponent={Grow}><button className="sell" onClick={() => handleOrderClick("SELL")}>Sell</button></Tooltip>
+        <Tooltip title="Sell" placement="top" arrow TransitionComponent={Grow}><button className={styles.sell} onClick={() => handleOrderClick("SELL")}>Sell</button></Tooltip>
 
-        <Tooltip title="Analytics" placement="top" arrow TransitionComponent={Grow}><button className="action" onClick={() => openChartWindow(uid)}><BarChartIcon className="icon" /></button></Tooltip>
-        
-        <Tooltip title="More" placement="top" arrow TransitionComponent={Grow}><button className="btn"><MoreHoriz className="icon" /></button></Tooltip>
+        <Tooltip title="Analytics" placement="top" arrow TransitionComponent={Grow}><button className={styles.action} onClick={() => openChartWindow(uid)}><BarChartIcon className={styles.icon} /></button></Tooltip>
+
+        <Tooltip title="More" placement="top" arrow TransitionComponent={Grow}><button className={styles.action}><MoreHoriz className={styles.icon} /></button></Tooltip>
       </span>
     </span>
   )

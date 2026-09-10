@@ -1,68 +1,14 @@
-import { useEffect, useState } from "react";
 import { VerticalGraph } from "./VerticalGraph.jsx";
-import API from "../api.js";
 import { calculatePortfolioMetrics } from "../utils/portfolioMath.js";
+import { usePortfolio } from "../context/PortfolioContext.jsx";
+import styles from "./Holdings.module.css";
+
 export default function Holdings() {
-  const [allHoldings, setAllHoldings] = useState([]);
-  const [loading, setLoading] = useState(true);
+ const {allHoldings,loading} = usePortfolio();
 
-  // backend se fresh holdings fetch kro
-  useEffect(() => {
-    API.get("/allHoldings")
-      .then(async (res) => {
-        const holdingsData = res.data || [];
-        setAllHoldings(holdingsData);
-        setLoading(false);
-
-        if (holdingsData.length === 0) {
-          return;
-        }
-
-        // fetch live quote of each stock in parallel
-        const quotePromises = holdingsData.map((stock) =>
-          API.get(`/market/quote/${stock.name}`)
-            .then((qRes) => ({ name: stock.name, quote: qRes.data }))
-            .catch(() => ({ name: stock.name, quote: null }))
-        );
-
-        const results = await Promise.allSettled(quotePromises);
-
-        // create Map (INFY: quoteData, RELIANCE: quoteData)
-        const quoteMap = {};
-        results.forEach((r) => {
-          if (r.status === "fulfilled" && r.value?.quote) {
-            quoteMap[r.value.name] = r.value.quote;
-          }
-        });
-
-        // Enrich holdings with live LTP and day change
-        setAllHoldings((prevHoldings) =>
-          prevHoldings.map((stock) => {
-            const live = quoteMap[stock.name];
-            if (!live) return stock;
-
-            const livePrice = Number(live.price) || stock.price;
-            const netChangePct = stock.avg > 0 ? (((livePrice - stock.avg) / stock.avg) * 100).toFixed(2) : "0.00";
-
-            return {
-              ...stock,
-              price: livePrice,
-              day: live.percent || stock.day,
-
-              net: `${Number(netChangePct) >= 0 ? `+` : ``}${netChangePct}%`,
-              isLoss: live.isLoss !== undefined ? live.isLoss : stock.isLoss,
-            };
-          })
-        );
-      })
-      .catch((err) => {
-        console.error("Holdings fetch failed: ", err);
-        setLoading(false);
-      })
-  }, []);
 
   if (loading) {
-    return <div className="holdings"><p>Loading Holdings...</p></div>
+    return <div className={styles.loading}><p>Loading Holdings...</p></div>
   }
 
   const {
@@ -87,10 +33,10 @@ export default function Holdings() {
 
 
   return (
-    <>
-      <h3 className="title">Holdings ({allHoldings.length})</h3>
+    <div className={styles.holdingsContainer}>
+      <h3 className={styles.title}>Holdings ({allHoldings.length})</h3>
 
-      <div className="order-table">
+      <div className={styles.orderTable}>
         <table>
           <thead>
             <tr>
@@ -109,15 +55,15 @@ export default function Holdings() {
             {allHoldings.map((stock) => {
               const curValue = stock.price * stock.qty;
               const pnl = curValue - (stock.avg * stock.qty);
-              const profClass = pnl >= 0 ? "profit" : "loss";
-              const dayClass = stock.isLoss ? "loss" : "profit";
+              const profClass = pnl >= 0 ? styles.profit : styles.loss;
+              const dayClass = stock.isLoss ? styles.loss : styles.profit;
               return (
-                <tr key={stock.name} >
-                  <td><strong>{stock.name}</strong></td>
+                <tr key={stock.name}>
+                  <td><strong className={styles.instrumentName}>{stock.name}</strong></td>
                   <td>{Number(stock.qty)}</td>
                   <td>&#8377;{Number(stock.avg).toFixed(2)}</td>
                   <td>&#8377;{Number(stock.price).toFixed(2)}</td>
-                  <td >&#8377;{Number(curValue).toFixed(2)}</td>
+                  <td>&#8377;{Number(curValue).toFixed(2)}</td>
                   <td className={profClass}>&#8377;{pnl >= 0 ? `+${pnl.toFixed(2)}` : pnl.toFixed(2)}</td>
                   <td className={profClass}>{stock.net || "+0.00%"}</td>
                   <td className={dayClass}>{stock.day || "+0.00%"}</td>
@@ -129,37 +75,35 @@ export default function Holdings() {
       </div>
 
       {/* dynamic summary Cards */}
-      <div className="row">
-        <div className="col">
+      <div className={styles.summaryRow}>
+        <div className={styles.summaryCol}>
           <h5>
             &#8377; {totalInvestment.toLocaleString('en-IN', {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
-
             })}
           </h5>
           <p>Total investment</p>
         </div>
-        <div className="col">
+        <div className={styles.summaryCol}>
           <h5>
             &#8377; {totalCurrentValue.toLocaleString('en-IN', {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
-
             })}
           </h5>
           <p>Current value</p>
         </div>
-        <div className="col">
-          <h5>
-            {isOverallProfit ? `+${totalPnL.toFixed(2)}` : totalPnL.toFixed(2)} <span className={`pnl-percentage ${isOverallProfit ? "profit" : "loss"}`}>{pnlPercentage}%</span>
-
+        <div className={styles.summaryCol}>
+          <h5 className={isOverallProfit ? styles.profit : styles.loss}>
+            &#8377; {isOverallProfit ? `+${totalPnL.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : totalPnL.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
+            <span className={`${styles.pnlPercentage} ${isOverallProfit ? styles.profit : styles.loss}`}>({pnlPercentage}%)</span>
           </h5>
           <p>P&L</p>
         </div>
       </div>
       <VerticalGraph data={data} />
-    </>
+    </div>
   );
 };
 

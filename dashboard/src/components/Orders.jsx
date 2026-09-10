@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import API from "../api";
+import styles from "./Orders.module.css";
 
 export default function Orders() {
 
@@ -21,28 +22,26 @@ export default function Orders() {
   },[]);
 
   if(loading){
-    return <div className="orders"><p>Loading your orders...</p></div>
+    return <div className={styles.loading}><p>Loading your orders...</p></div>
   }
 
   // Agar koi order nahi hai
   if(allOrders.length === 0){
     return(
-      <div className="orders">
-      <div className="no-orders">
-        <p>You haven't placed any orders Today</p>
-        <Link to={"/"}  className="btn">Get started</Link>
+      <div className={styles.emptyContainer}>
+        <div className={styles.noOrders}>
+          <p>You haven't placed any orders today</p>
+          <Link to={"/"} className={styles.btn}>Get started</Link>
+        </div>
       </div>
-      </div>
-    )
+    );
   }
 
 
   return (
-      
-    <div className="orders-container">
-      <h3 className="title">Executed Orders ({allOrders.length})</h3>
-      <div className="order-table">
-      
+    <div className={styles.ordersContainer}>
+      <h3 className={styles.title}>Executed Orders ({allOrders.length})</h3>
+      <div className={styles.orderTable}>
         <table>
             <thead>
               <tr>
@@ -51,32 +50,24 @@ export default function Orders() {
                 <th>Price (&#8377;)</th>
                 <th>Mode</th>
                 <th>Status</th>
-                
               </tr>
-                
             </thead>
             <tbody>
                 {allOrders.map((order)=> {
                     const isBuy = order.mode === "BUY";
                     return(
                       <tr key={order._id}>
-                        <td><strong>{order.name}</strong></td>
+                        <td><strong className={styles.instrumentName}>{order.name}</strong></td>
                         <td>{order.qty}</td>
-                        <td>{Number(order.price).toFixed(2)}</td>
+                        <td>&#8377;{Number(order.price).toFixed(2)}</td>
                         <td>
-                          <span style={{
-                            padding: "3px 8px",
-                            borderRadius:"4px",
-                            fontWeight: "bold",
-                            fontSize: "11px",
-                            backgroundColor: isBuy ? "#e6f3ff" : "#ffebe6",
-                            color: isBuy ? "#0066cc" : "#ff3b30"
-                          }}>{order.mode}</span>
+                          <span className={`${styles.modeBadge} ${isBuy ? styles.modeBuy : styles.modeSell}`}>
+                            {order.mode}
+                          </span>
                         </td>
                         <td>
-                          <span style={{ color: "#28a745", fontWeight:"600", fontSize:"12px"}}> ● COMPLETE</span>
+                          <span className={styles.statusComplete}>● COMPLETE</span>
                         </td>
-
                       </tr>
                     );
                 })}

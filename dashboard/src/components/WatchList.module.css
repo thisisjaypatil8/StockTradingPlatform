@@ -1,0 +1,215 @@
+.watchlistContainer {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  border-right: 1px solid rgb(224, 224, 224);
+  overflow-y: auto;
+  position: relative;
+}
+
+.searchContainer {
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+  position: relative;
+}
+
+.search {
+  width: 100%;
+  border: none;
+  padding: 15px 20px;
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: #444;
+  border-bottom: 0.8px solid rgb(235, 234, 234);
+  box-sizing: border-box;
+}
+
+.search:focus {
+  outline: none;
+}
+
+.counts {
+  position: absolute;
+  right: 20px;
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: rgb(177, 177, 177);
+}
+
+.list {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+  padding-bottom: 60px;
+}
+
+.list li {
+  border-bottom: 0.8px solid rgb(235, 234, 234);
+  padding: 12px 10px 12px 14px;
+  position: relative;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.list li:hover {
+  background-color: #f8f8f8;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 400;
+  font-size: 0.82rem;
+  position: relative;
+  width: 100%;
+}
+
+.item p {
+  margin: 0;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+}
+
+.itemInfo {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.percent {
+  min-width: 58px;
+  text-align: right;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.itemInfo svg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin: 0 2px;
+}
+
+.price {
+  min-width: 82px;
+  text-align: right;
+  font-size: 0.82rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Hover Action Buttons */
+.actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  align-items: center;
+  justify-content: flex-end;
+  background: #f8f8f8;
+  padding-right: 8px;
+  z-index: 2;
+  display: flex;
+}
+
+.actionsGroup,
+.actions > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.actionsGroup button,
+.actions span button {
+  width: 38px;
+  height: 28px;
+  border-radius: 4px;
+  margin: 0;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-sizing: border-box;
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1;
+  vertical-align: middle;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.buyBtn,
+.buy {
+  background-color: #4184f3;
+  color: #fff;
+  border-color: #4184f3;
+}
+
+.buyBtn:hover,
+.buy:hover {
+  background-color: #2b6cb0;
+  border-color: #2b6cb0;
+}
+
+.sellBtn,
+.sell {
+  background-color: #ff5722;
+  color: #fff;
+  border-color: #ff5722;
+}
+
+.sellBtn:hover,
+.sell:hover {
+  background-color: #e64a19;
+  border-color: #e64a19;
+}
+
+.actionBtn,
+.action {
+  background-color: #fff;
+  border: 1px solid #d1d5db;
+  color: #555;
+}
+
+.actionBtn:hover,
+.action:hover {
+  background-color: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.actionIcon,
+.icon {
+  font-size: 1.15rem !important;
+  width: 1.15rem !important;
+  height: 1.15rem !important;
+  color: #555;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Color utilities scoped */
+.down {
+  color: #df4949;
+}
+
+.up {
+  color: #4caf50;
+}
+
+@media (max-width: 768px) {
+  .watchlistContainer {
+    border-right: none;
+    border-top: 1px solid #e0e0e0;
+    height: auto;
+    min-height: calc(100vh - 120px);
+    overflow-y: visible;
+  }
+}
