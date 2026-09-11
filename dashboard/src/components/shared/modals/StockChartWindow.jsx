@@ -11,7 +11,7 @@ import {
   Filler,
 } from "chart.js";
 import { Line } from "react-chartjs-2";
-import API from "../api";
+import API from "../../../api";
 import "./StockChartWindow.css";
 
 // Chart.js ke essential controllers register karo

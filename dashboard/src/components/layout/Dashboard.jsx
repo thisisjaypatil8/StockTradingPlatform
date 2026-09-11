@@ -1,22 +1,19 @@
-
 import { Route, Routes } from "react-router-dom";
-
-import Apps from "./Apps.jsx";
-import Funds from "./Funds.jsx";
-import Holdings from "./Holdings.jsx";
-import { GeneralContextProvider } from "./GeneralContext.jsx";
-
-import Orders from "./Orders.jsx";
-import Positions from "./Positions.jsx";
-import Summary from "./Summary.jsx";
-import WatchList from "./WatchList.jsx";
 import { useState } from "react";
+import { GeneralContextProvider } from "../../context/GeneralContext";
+
+import Apps from "../features/apps/Apps.jsx";
+import Funds from "../features/funds/Funds.jsx";
+import Holdings from "../features/holdings/Holdings.jsx";
+import Orders from "../features/orders/Orders.jsx";
+import Positions from "../features/positions/Positions.jsx";
+import Summary from "../features/summary/Summary.jsx";
+import WatchList from "../features/watchlist/WatchList.jsx";
 
 export default function Dashboard() {
   const [mobileTab, setMobileTab] = useState("content");
 
   return (
-
     <div className="dashboard-wrapper">
       <div className="mobile-view-toggle">
         <button
@@ -32,9 +29,6 @@ export default function Dashboard() {
           Watchlist
         </button>
       </div>
-
-
-
 
       <div className="dashboard-container">
         <GeneralContextProvider>
@@ -55,5 +49,4 @@ export default function Dashboard() {
       </div>
     </div>
   );
-};
-
+}

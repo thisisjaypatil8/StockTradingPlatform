@@ -11,22 +11,22 @@
 
 .orderTable {
   width: 100%;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
   background: #fff;
   border-radius: 4px;
   border: 1px solid #e0e0e0;
+  box-sizing: border-box;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .orderTable table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 700px;
 }
 
 .orderTable th {
   text-align: right;
-  padding: 14px 16px;
+  padding: 11px 12px;
   color: #888;
   font-weight: 500;
   font-size: 0.8rem;
@@ -34,15 +34,17 @@
   border-bottom: 1px solid #eee;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  white-space: nowrap;
 }
 
 .orderTable td {
-  padding: 14px 16px;
+  padding: 11px 12px;
   text-align: right;
   font-size: 0.88rem;
   color: #333;
   border-bottom: 1px solid #f2f2f2;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .orderTable tr:last-child td {
@@ -122,6 +124,15 @@
 
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
+  .orderTable {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .orderTable table {
+    min-width: 650px;
+  }
+
   .summaryRow {
     flex-direction: column;
     gap: 12px;

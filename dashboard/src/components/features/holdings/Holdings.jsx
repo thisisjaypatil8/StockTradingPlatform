@@ -1,14 +1,17 @@
-import { VerticalGraph } from "./VerticalGraph.jsx";
-import { calculatePortfolioMetrics } from "../utils/portfolioMath.js";
-import { usePortfolio } from "../context/PortfolioContext.jsx";
+import { VerticalGraph } from "../../shared/charts/VerticalGraph.jsx";
+import { calculatePortfolioMetrics } from "../../../utils/portfolioMath.js";
+import { usePortfolio } from "../../../context/PortfolioContext.jsx";
 import styles from "./Holdings.module.css";
 
 export default function Holdings() {
- const {allHoldings,loading} = usePortfolio();
-
+  const { allHoldings, loading } = usePortfolio();
 
   if (loading) {
-    return <div className={styles.loading}><p>Loading Holdings...</p></div>
+    return (
+      <div className={styles.loading}>
+        <p>Loading Holdings...</p>
+      </div>
+    );
   }
 
   const {
@@ -19,18 +22,19 @@ export default function Holdings() {
     isOverallProfit,
   } = calculatePortfolioMetrics(allHoldings);
 
-  // Vertical graph data prepare kr
+  // Vertical graph data preparation
   const labels = allHoldings.map((stock) => stock.name);
 
   const data = {
     labels,
-    datasets: [{
-      label: "Stock Price",
-      data: allHoldings.map((stock) => stock.price),
-      backgroundColor: "rgba(75, 192, 192, 0.6)",
-    }]
-  }
-
+    datasets: [
+      {
+        label: "Stock Price",
+        data: allHoldings.map((stock) => stock.price),
+        backgroundColor: "rgba(75, 192, 192, 0.6)",
+      },
+    ],
+  };
 
   return (
     <div className={styles.holdingsContainer}>
@@ -54,17 +58,21 @@ export default function Holdings() {
           <tbody>
             {allHoldings.map((stock) => {
               const curValue = stock.price * stock.qty;
-              const pnl = curValue - (stock.avg * stock.qty);
+              const pnl = curValue - stock.avg * stock.qty;
               const profClass = pnl >= 0 ? styles.profit : styles.loss;
               const dayClass = stock.isLoss ? styles.loss : styles.profit;
               return (
                 <tr key={stock.name}>
-                  <td><strong className={styles.instrumentName}>{stock.name}</strong></td>
+                  <td>
+                    <strong className={styles.instrumentName}>{stock.name}</strong>
+                  </td>
                   <td>{Number(stock.qty)}</td>
-                  <td>&#8377;{Number(stock.avg).toFixed(2)}</td>
-                  <td>&#8377;{Number(stock.price).toFixed(2)}</td>
-                  <td>&#8377;{Number(curValue).toFixed(2)}</td>
-                  <td className={profClass}>&#8377;{pnl >= 0 ? `+${pnl.toFixed(2)}` : pnl.toFixed(2)}</td>
+                  <td>₹{Number(stock.avg).toFixed(2)}</td>
+                  <td>₹{Number(stock.price).toFixed(2)}</td>
+                  <td>₹{Number(curValue).toFixed(2)}</td>
+                  <td className={profClass}>
+                    ₹{pnl >= 0 ? `+${pnl.toFixed(2)}` : pnl.toFixed(2)}
+                  </td>
                   <td className={profClass}>{stock.net || "+0.00%"}</td>
                   <td className={dayClass}>{stock.day || "+0.00%"}</td>
                 </tr>
@@ -74,11 +82,12 @@ export default function Holdings() {
         </table>
       </div>
 
-      {/* dynamic summary Cards */}
+      {/* Dynamic summary cards */}
       <div className={styles.summaryRow}>
         <div className={styles.summaryCol}>
           <h5>
-            &#8377; {totalInvestment.toLocaleString('en-IN', {
+            ₹{" "}
+            {totalInvestment.toLocaleString("en-IN", {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
             })}
@@ -87,7 +96,8 @@ export default function Holdings() {
         </div>
         <div className={styles.summaryCol}>
           <h5>
-            &#8377; {totalCurrentValue.toLocaleString('en-IN', {
+            ₹{" "}
+            {totalCurrentValue.toLocaleString("en-IN", {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
             })}
@@ -96,8 +106,23 @@ export default function Holdings() {
         </div>
         <div className={styles.summaryCol}>
           <h5 className={isOverallProfit ? styles.profit : styles.loss}>
-            &#8377; {isOverallProfit ? `+${totalPnL.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : totalPnL.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
-            <span className={`${styles.pnlPercentage} ${isOverallProfit ? styles.profit : styles.loss}`}>({pnlPercentage}%)</span>
+            ₹{" "}
+            {isOverallProfit
+              ? `+${totalPnL.toLocaleString("en-IN", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}`
+              : totalPnL.toLocaleString("en-IN", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}{" "}
+            <span
+              className={`${styles.pnlPercentage} ${
+                isOverallProfit ? styles.profit : styles.loss
+              }`}
+            >
+              ({pnlPercentage}%)
+            </span>
           </h5>
           <p>P&L</p>
         </div>
@@ -105,5 +130,4 @@ export default function Holdings() {
       <VerticalGraph data={data} />
     </div>
   );
-};
-
+}

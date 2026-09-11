@@ -7,6 +7,13 @@ const UserSchema = new Schema({
         required:true,
         unique:true,
     },
+    funds:{
+        availableCash:{
+            type:Number,
+            default:100000,
+        },
+        
+    },
     createdAt:{
         type: Date,
         default: Date.now,

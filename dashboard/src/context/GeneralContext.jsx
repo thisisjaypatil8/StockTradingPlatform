@@ -1,12 +1,12 @@
 import React, { useState } from "react";
-import BuyActionWindow from "./BuyActionWindow";
-import StockChartWindow from "./StockChartWindow";
+import BuyActionWindow from "../components/shared/modals/BuyActionWindow";
+import StockChartWindow from "../components/shared/modals/StockChartWindow";
 
 const GeneralContext = React.createContext({
   openOrderWindow: (uid, type) => {},
   closeOrderWindow: () => {},
-  openChartWindow:(uid) => {},
-  closeChartWindow:() => {},
+  openChartWindow: (uid) => {},
+  closeChartWindow: () => {},
 });
 
 export const GeneralContextProvider = (props) => {
@@ -14,7 +14,7 @@ export const GeneralContextProvider = (props) => {
   const [selectedStockUID, setSelectedStockUID] = useState("");
   const [orderMode, setOrderMode] = useState("BUY");
 
-  // chart model states
+  // Chart modal states
   const [isChartWindowOpen, setIsChartWindowOpen] = useState(false);
   const [selectedChartStockUID, setSelectedChartStockUID] = useState("");
 
@@ -23,7 +23,7 @@ export const GeneralContextProvider = (props) => {
     setIsOrderWindowOpen(true);
     setSelectedStockUID(uid);
     setOrderMode(type);
-  }
+  };
 
   const handleCloseOrderWindow = () => {
     setIsOrderWindowOpen(false);
@@ -31,15 +31,15 @@ export const GeneralContextProvider = (props) => {
   };
 
   // Chart Window Handlers
-  const handleOpenChartWindow = (uid) =>{
+  const handleOpenChartWindow = (uid) => {
     setSelectedChartStockUID(uid);
     setIsChartWindowOpen(true);
   };
 
-  const handleCloseChartWindow = () =>{
+  const handleCloseChartWindow = () => {
     setIsChartWindowOpen(false);
     setSelectedChartStockUID("");
-  }
+  };
 
   return (
     <GeneralContext.Provider
@@ -51,11 +51,10 @@ export const GeneralContextProvider = (props) => {
       }}
     >
       {props.children}
-      {isOrderWindowOpen && <BuyActionWindow uid={selectedStockUID} mode={orderMode}/>}
-      {isChartWindowOpen && <StockChartWindow uid ={selectedChartStockUID} onClose={handleCloseChartWindow}/>}
+      {isOrderWindowOpen && <BuyActionWindow uid={selectedStockUID} mode={orderMode} />}
+      {isChartWindowOpen && <StockChartWindow uid={selectedChartStockUID} onClose={handleCloseChartWindow} />}
     </GeneralContext.Provider>
   );
 };
 
 export default GeneralContext;
-

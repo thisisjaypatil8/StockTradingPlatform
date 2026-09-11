@@ -1,4 +1,4 @@
-export const calculatePortfolioMetrics = (allHoldings = []) => {
+export const calculatePortfolioMetrics = (allHoldings = [], availableCash = 100000) => {
     let totalInvestment = 0;
     let totalCurrentValue = 0;
 
@@ -10,9 +10,9 @@ export const calculatePortfolioMetrics = (allHoldings = []) => {
     const totalPnL = totalCurrentValue - totalInvestment;
     const pnlPercentage = totalInvestment > 0 ? (totalPnL / totalInvestment * 100).toFixed(2) : "0.00";
 
-    const openingBalance = 100000;
     const usedMargin = totalInvestment;
-    const availableMargin = Math.max(0, openingBalance - usedMargin);
+    const availableMargin = Number(availableCash) || 0;
+    const openingBalance = availableMargin + usedMargin;
 
     return {
         totalInvestment,
@@ -38,3 +38,52 @@ export const formatK = (val) => {
     }
     return Number(val).toFixed(2);
 }
+
+
+export const calculateIntradayPositionMetrics = (stock) => {
+    const net = stock.netQty !== undefined ? stock.netQty : (stock.qty || 0);
+    const realized = Number(stock.realizedPnL || 0);
+    const ltp = Number(stock.price) || 0;
+    const avg = Number(stock.avg) || 0;
+
+    let unrealized = 0;
+    if (net > 0) {
+        // Long Position: (LTP - Buy Avg) * Net Qty
+        const buyAvg = Number(stock.buyAvg) || avg;
+        unrealized = (ltp - buyAvg) * net;
+    } else if (net < 0) {
+        // Short Position: (Sell Avg - LTP) * Abs(Net Qty)
+        const sellAvg = Number(stock.sellAvg) || avg;
+        unrealized = (sellAvg - ltp) * Math.abs(net);
+    }
+
+    const totalPnL = realized + unrealized;
+
+    return {
+        net,
+        realized,
+        unrealized,
+        totalPnL,
+        isLong: net > 0,
+        isShort: net < 0,
+        isClosed: net === 0,
+    };
+};
+
+export const calculateTotalIntradayMetrics = (positions = []) => {
+    let totalRealized = 0;
+    let totalUnrealized = 0;
+
+    positions.forEach((stock) => {
+        const metrics = calculateIntradayPositionMetrics(stock);
+        totalRealized += metrics.realized;
+        totalUnrealized += metrics.unrealized;
+
+    });
+
+    return {
+        totalRealized,
+        totalUnrealized,
+        totalDayPnL: totalRealized + totalUnrealized,
+    };
+};

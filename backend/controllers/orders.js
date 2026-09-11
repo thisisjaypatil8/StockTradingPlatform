@@ -1,6 +1,7 @@
 const Orders = require("../model/OrdersModel");
 const Holdings = require("../model/HoldingsModel");
 const Positions = require("../model/PositionsModel");
+const User = require("../model/UserModel");
 const ExpressError = require("../utils/ExpressError");
 
 module.exports.getAllOrders = async (req, res) => {
@@ -31,17 +32,35 @@ module.exports.createOrder = async (req, res) => {
     if (product === "CNC") {
         const existingHolding = await Holdings.findOne({ name, user: req.user.id });
         if (mode === "BUY") {
-            if (existingHolding) {
-                const totalCost = (existingHolding.qty * existingHolding.avg) +
-                    (orderQty * orderPrice);
-                const totalQty = existingHolding.qty + orderQty;
-                const newAvg = totalCost / totalQty;
+                const orderCost = orderQty * orderPrice;
+
+                //1. balance precheck
+                const user = await User.findById(req.user.id);
+                const currentCash = user.funds?.availableCash !== undefined ? user.funds.availableCash : 100000;
+
+                if(currentCash < orderCost){
+                    throw new ExpressError(400, `Insufficient funds! Required ₹${orderCost.toLocaleString("en-IN")} but only have ₹${currentCash.toLocaleString("en-IN")}`);
+                }
+
+                //2. Atomic cash deduction
+                await User.findByIdAndUpdate(req.user.id, {
+                    $inc:{"funds.availableCash": -orderCost}
+                });
+
+                //3. Existing holdings update
+                if(existingHolding){
+                    const totalCostCalc = (existingHolding.qty * existingHolding.avg) + (orderQty * orderPrice);
+                     const totalQty = existingHolding.qty + orderQty;
+                const newAvg = totalCostCalc / totalQty;
 
                 existingHolding.qty = totalQty;
                 existingHolding.avg = Number(newAvg.toFixed(2));
                 existingHolding.price = orderPrice; // Latest market price Update
 
                 await existingHolding.save();
+                
+                
+               
             } else {
                 // first time buy - new Holding with user reference
                 const newHolding = new Holdings({
@@ -61,6 +80,15 @@ module.exports.createOrder = async (req, res) => {
             if (!existingHolding || existingHolding.qty < orderQty) {
                 throw new ExpressError(400, `Insufficient holdings! You only own ${existingHolding ? existingHolding.qty : 0} shares of ${name}.`)
             }
+
+            // 1. Credit sale proceeds back to user wallet!
+            const sellProceeds = orderQty * orderPrice;
+            await User.findByIdAndUpdate(req.user.id, {
+                $inc: { "funds.availableCash": sellProceeds}
+            })
+
+            //2. Reduce holding / delete holding
+
             if (existingHolding.qty === orderQty) {
                 await Holdings.deleteOne({ _id: existingHolding._id });
             } else {
@@ -130,6 +158,13 @@ module.exports.createOrder = async (req, res) => {
 
             // Lock in realized profit/loss
             existingPosition.realizedPnL = Number(((existingPosition.realizedPnL || 0) + realizedDiff).toFixed(2));
+
+            // T+0 Instant settlement: settle realized P&L directly into cash wallet!
+            if(realizedDiff !== 0){
+                await User.findByIdAndUpdate(req.user.id, {
+                    $inc: {"funds.availableCash": Number(realizedDiff.toFixed(2))}
+                });
+            }
 
             //Calculate new Net Quantity
             const newNetQty = existingPosition.buyQty - existingPosition.sellQty;

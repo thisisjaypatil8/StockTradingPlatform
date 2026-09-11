@@ -6,8 +6,46 @@ const PortfolioContext = createContext();
 export const PortfolioProvider = ({children}) => {
 
     const [allHoldings, setAllHoldings] = useState([]);
+    const [funds, setFunds] = useState({ availableCash: 100000});
     const [loading, setLoading] = useState(true);
+
+    //1. Fetch live wallet balance from backend
+    const fetchFunds = async () => {
+        try {
+            const res = await API.get("/funds");
+            if(res.data && res.data.availableCash !== undefined){
+                setFunds({ availableCash: res.data.availableCash});
+            }
+        } catch (err) {
+            console.error("Failed to fetch funds", err);
+        }
+    };
+
+    //2. add funds action
+    const addFunds = async (amount) => {
+        const res = await API.post("/funds/add", {amount});
+        if(res.data && res.data.availableCash != undefined){
+            setFunds({ availableCash: res.data.availableCash});
+        }
+        return res.data;
+        
+    }
+
+    // 3. Withdraw funds action
+    const withdrawFunds = async (amount) => {
+        try {
+            const res = await API.post("/funds/withdraw", {amount});
+
+            if(res.data && res.data.availableCash != undefined){
+                setFunds({ availableCash: res.data.availableCash });
+            }
+            return res.data;
+        } catch (err) {
+            throw err;
+        }
+    };
     
+    //4. fetch holdings + live CMP
     const fetchPortfolio = async () => {
         try {
             const res = await API.get("/allHoldings");
@@ -62,14 +100,19 @@ export const PortfolioProvider = ({children}) => {
 
     useEffect(() => {
         fetchPortfolio();
+        fetchFunds();
     },[]);
 
     return (
         <PortfolioContext.Provider
          value={{
             allHoldings,
+            funds,
             loading,
             refreshPortfolio:fetchPortfolio,
+            refreshFunds: fetchFunds,
+            addFunds,
+            withdrawFunds,
          }}
         >
             {children}

@@ -6,6 +6,7 @@ const ordersRoutes = require("./routes/orders");
 const positionsRoutes = require("./routes/positions");
 const holdingsRoutes = require("./routes/holdings");
 const marketRoutes = require("./routes/market");
+const fundsRoutes = require("./routes/funds");
 
 const passport = require("passport");
 const User = require("./model/UserModel");
@@ -40,6 +41,8 @@ app.use("/allPositions", positionsRoutes);
 app.use("/", ordersRoutes);
 
 app.use("/", authRoutes);
+
+app.use("/funds", fundsRoutes);
 
 
 // Central Error Handling Middleware

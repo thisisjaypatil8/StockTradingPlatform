@@ -1,0 +1,164 @@
+.summaryContainer {
+  padding: 10px 0 30px 0;
+  max-width: 800px;
+}
+
+/* Greeting Header */
+.greetingHeader {
+  margin-bottom: 20px;
+}
+
+.greetingHeader h6 {
+  font-size: 1.45rem;
+  font-weight: 500;
+  color: #2c3e50;
+  margin: 0 0 4px 0;
+}
+
+.greetingSubtext {
+  font-size: 0.85rem;
+  color: #7f8c8d;
+  margin: 0;
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid #edf2f7;
+  margin: 24px 0;
+}
+
+/* Section Pillars */
+.section {
+  padding: 4px 0;
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.sectionTitle h4 {
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: #333;
+  margin: 0;
+}
+
+.iconDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #4184f3;
+  display: inline-block;
+}
+
+.badge {
+  background: #f1f3f5;
+  color: #666;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 10px;
+}
+
+/* Metrics Row */
+.data {
+  display: flex;
+  align-items: center;
+  gap: 36px;
+}
+
+.first {
+  min-width: 200px;
+}
+
+.first h3 {
+  font-size: 2.2rem;
+  font-weight: 400;
+  color: #222;
+  margin: 0 0 4px 0;
+  letter-spacing: -0.5px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.first p {
+  font-size: 0.82rem;
+  color: #888;
+  margin: 0;
+  font-weight: 400;
+}
+
+.vDivider {
+  width: 1px;
+  height: 52px;
+  background: #edf2f7;
+}
+
+.second {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 220px;
+}
+
+.metaRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.metaVal {
+  font-weight: 500;
+  color: #222;
+  margin-left: 16px;
+}
+
+/* Profit / Loss Accents */
+.profit {
+  color: #2e7d32 !important;
+}
+
+.loss {
+  color: #d32f2f !important;
+}
+
+.profitBadge {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #2e7d32;
+  background: #e8f5e9;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.lossBadge {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #d32f2f;
+  background: #ffebee;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 600px) {
+  .data {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .vDivider {
+    display: none;
+  }
+
+  .second {
+    width: 100%;
+  }
+}

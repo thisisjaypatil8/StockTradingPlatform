@@ -1,6 +1,6 @@
 
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import Home from "./components/Home.jsx";
+import Home from "./components/layout/Home.jsx";
 import { useEffect, useState } from "react";
 
 
