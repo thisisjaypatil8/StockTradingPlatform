@@ -1,6 +1,5 @@
 import { Route, Routes } from "react-router-dom";
 import { useState } from "react";
-import { GeneralContextProvider } from "../../context/GeneralContext";
 
 import Apps from "../features/apps/Apps.jsx";
 import Funds from "../features/funds/Funds.jsx";
@@ -31,11 +30,9 @@ export default function Dashboard() {
       </div>
 
       <div className="dashboard-container">
-        <GeneralContextProvider>
-          <div className={`watchlist-pane ${mobileTab === "watchlist" ? "show-mobile" : "hide-mobile"}`}>
-            <WatchList />
-          </div>
-        </GeneralContextProvider>
+        <div className={`watchlist-pane ${mobileTab === "watchlist" ? "show-mobile" : "hide-mobile"}`}>
+          <WatchList />
+        </div>
         <div className={`content ${mobileTab === "content" ? "show-mobile" : "hide-mobile"}`}>
           <Routes>
             <Route exact path="/" element={<Summary />} />

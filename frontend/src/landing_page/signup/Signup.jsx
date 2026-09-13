@@ -46,7 +46,7 @@ export default function Signup() {
             if (data.token) {
                 login(data.token, data.user);
 
-                window.location.href = `http://localhost:3000/?token=${data.token}&username=${data.user.username}&userId=${data.user.id}`;
+                window.location.href = `http://localhost:3000/?token=${data.token}&username=${encodeURIComponent(data.user.username)}&userId=${data.user.id}&role=${encodeURIComponent(data.user.role || "")}`;
             }
         } catch (err) {
             setError(err.message);

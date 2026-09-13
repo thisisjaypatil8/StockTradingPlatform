@@ -5,6 +5,16 @@ import { useEffect, useState } from "react";
 
 
 
+const envAdminUser = (import.meta.env.VITE_ADMIN_USERNAME || "").trim().toLowerCase();
+const envAdminEmail = (import.meta.env.VITE_ADMIN_EMAIL || "").trim().toLowerCase();
+
+const verifyIsAdmin = (role, uname, email) => {
+  const u = (uname || "").trim().toLowerCase();
+  const e = (email || "").trim().toLowerCase();
+  const matchesEnv = (envAdminUser && u === envAdminUser) || (envAdminEmail && e === envAdminEmail);
+  return role === "admin" && matchesEnv;
+};
+
 export default function App() {
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -16,11 +26,28 @@ export default function App() {
     const tokenFromUrl = queryParams.get("token");
     const usernameFromUrl = queryParams.get("username");
     const userIdFromUrl = queryParams.get("userId");
+    const roleFromUrl = queryParams.get("role");
 
     if (tokenFromUrl) {
+      // Decode JWT payload if possible
+      let role = roleFromUrl;
+      let email = null;
+      try {
+        const payload = JSON.parse(atob(tokenFromUrl.split('.')[1]));
+        if (!role && payload.role) role = payload.role;
+        email = payload.email;
+      } catch (e) {}
+
+      const isSoleAdmin = verifyIsAdmin(role, usernameFromUrl, email);
+
       // Save token in Port 3000 Local Storage
       localStorage.setItem("token", tokenFromUrl);
-      localStorage.setItem("user", JSON.stringify({ username: usernameFromUrl, id: userIdFromUrl }));
+      localStorage.setItem("user", JSON.stringify({ 
+        username: usernameFromUrl, 
+        id: userIdFromUrl,
+        email: email,
+        role: isSoleAdmin ? "admin" : "user"
+      }));
       // Remove the token from url (Zero security leakage)
       window.history.replaceState({}, document.title, window.location.pathname);
       setIsAuthenticated(true);
@@ -28,6 +55,20 @@ export default function App() {
       //2.Check if token is not in url , check in local storage for keep the user logged in
       const savedToken = localStorage.getItem("token");
       if(savedToken){
+        try {
+          const raw = localStorage.getItem("user");
+          const u = raw ? JSON.parse(raw) : {};
+          let role = u.role || "user";
+          let email = u.email;
+          try {
+            const payload = JSON.parse(atob(savedToken.split('.')[1]));
+            if (payload.role) role = payload.role;
+            if (payload.email) email = payload.email;
+          } catch (e) {}
+          const isSoleAdmin = verifyIsAdmin(role, u.username, email);
+          u.role = isSoleAdmin ? "admin" : "user";
+          localStorage.setItem("user", JSON.stringify(u));
+        } catch (e) {}
         setIsAuthenticated(true);
       }else{
         setIsAuthenticated(false);

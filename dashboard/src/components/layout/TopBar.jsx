@@ -1,7 +1,12 @@
 import Menu from "./Menu.jsx";
 import styles from "./TopBar.module.css";
+import GeneralContext from "../../context/GeneralContext.jsx";
+import { useContext } from "react";
 
 export default function TopBar() {
+
+  const { isAdmin, isSimulationMode, toggleSimulationMode } = useContext(GeneralContext);
+
   return (
     <div className={styles.topbarContainer}>
       <div className={styles.indicesContainer}>
@@ -24,7 +29,18 @@ export default function TopBar() {
           </p>
         </div>
       </div>
-
+      {/* Admin-Exclusive Market Simulator Control Switch */}
+      {isAdmin && (
+        <button
+          type="button"
+          onClick={toggleSimulationMode}
+          className={`${styles.simButton} ${isSimulationMode ? styles.simActive : styles.simLive}`}
+          title="Toggle Market Simulation (Admin Only)"
+        >
+          <span className={styles.pulseDot}></span>
+          <span>{isSimulationMode ? "⚡ SIMULATOR ON" : "🔴 LIVE MARKET"}</span>
+        </button>
+      )}
       <Menu />
     </div>
   );

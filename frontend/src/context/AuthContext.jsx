@@ -60,7 +60,7 @@ export function AuthProvider({children}){
     const isLoggedIn = Boolean(token && user);
 
     // Session handoff URL
-    const dashboardUrl = isLoggedIn ? `http://localhost:3000/?token=${token}&username=${encodeURIComponent(user.username || "")}&userId=${user.id || user._id || ""}` : "http://localhost:3000/";
+    const dashboardUrl = isLoggedIn ? `http://localhost:3000/?token=${token}&username=${encodeURIComponent(user.username || "")}&userId=${user.id || user._id || ""}&role=${encodeURIComponent(user.role || "")}` : "http://localhost:3000/";
 
 
     return(

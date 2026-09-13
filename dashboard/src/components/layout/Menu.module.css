@@ -153,10 +153,8 @@
 /* Desktop Grid Alignment */
 @media (min-width: 769px) {
   .menuContainer {
-    flex: 0 0 68%;
-    width: 68%;
+    flex: 1;
     min-width: 0;
-    max-width: 68%;
   }
 }
 

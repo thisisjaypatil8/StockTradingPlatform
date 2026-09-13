@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+
 import { useState, useContext, useEffect } from "react";
 import "./BuyActionWindow.css";
 import GeneralContext from "../../../context/GeneralContext";
@@ -10,7 +10,7 @@ export default function BuyActionWindow({ uid, mode }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [productType, setProductType] = useState("CNC");
 
-  const { closeOrderWindow } = useContext(GeneralContext);
+  const { closeOrderWindow, isSimulationMode } = useContext(GeneralContext);
   const isSell = mode === "SELL";
 
   const handleOrderSubmit = async (e) => {
@@ -23,6 +23,7 @@ export default function BuyActionWindow({ uid, mode }) {
         price: Number(stockPrice),
         mode: mode,
         product: productType,
+        isSimulation: isSimulationMode,
       });
       alert(res.data.message || `${mode} order placed Successfully!`);
       closeOrderWindow();
@@ -127,16 +128,28 @@ export default function BuyActionWindow({ uid, mode }) {
             />
           </fieldset>
           <fieldset>
-            <legend>Price (&#8377;)</legend>
+            <legend>Price (₹) {!isSimulationMode ? "🔒 CMP" : "⚡ Edit"}</legend>
             <input
               type="number"
               name="price"
               id="price"
               step="0.05"
-              onChange={(e) => setStockPrice(e.target.value)}
+              onChange={(e) => isSimulationMode && setStockPrice(e.target.value)}
               value={stockPrice}
+              readOnly={!isSimulationMode}
+              title={
+                !isSimulationMode
+                  ? "Locked to Live CMP. Enable Admin Simulator in TopBar to edit price."
+                  : "Custom execution price editable"
+              }
+              style={{
+                backgroundColor: !isSimulationMode ? "#f8f9fa" : "#ffffff",
+                cursor: !isSimulationMode ? "not-allowed" : "text",
+                color: !isSimulationMode ? "#666" : "#111",
+              }}
             />
           </fieldset>
+
         </div>
       </div>
 
