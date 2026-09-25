@@ -18,7 +18,6 @@ export default function PositionRow({ stock, onSquareOff }) {
 
   return (
     <tr>
-      <td>{stock.product || "MIS"}</td>
       <td>
         <strong className={styles.instrumentName}>{stock.name}</strong>
       </td>

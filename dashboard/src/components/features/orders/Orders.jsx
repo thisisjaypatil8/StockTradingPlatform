@@ -6,6 +6,7 @@ import styles from "./Orders.module.css";
 export default function Orders() {
   const [allOrders, setAllOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState("ALL");
 
   useEffect(() => {
     API.get("/allOrders")
@@ -39,10 +40,40 @@ export default function Orders() {
       </div>
     );
   }
-
+  // Filter logic
+  const cncCount = allOrders.filter((o) => (o.product || "CNC") !== "MIS").length;
+  const misCount = allOrders.filter((o) => o.product === "MIS").length;
+  const filteredOrders = allOrders.filter((order) => {
+    const prod = order.product || "CNC";
+    if (filter === "CNC") return prod !== "MIS";
+    if (filter === "MIS") return prod === "MIS";
+    return true;
+  });
+ 
   return (
     <div className={styles.ordersContainer}>
       <h3 className={styles.title}>Executed Orders ({allOrders.length})</h3>
+         {/* Filter Tabs */}
+      <div className={styles.filterContainer}>
+        <button
+          className={`${styles.filterBtn} ${filter === "ALL" ? styles.filterBtnActive : ""}`}
+          onClick={() => setFilter("ALL")}
+        >
+          All ({allOrders.length})
+        </button>
+        <button
+          className={`${styles.filterBtn} ${filter === "CNC" ? styles.filterBtnActive : ""}`}
+          onClick={() => setFilter("CNC")}
+        >
+          CNC Delivery ({cncCount})
+        </button>
+        <button
+          className={`${styles.filterBtn} ${filter === "MIS" ? styles.filterBtnActive : ""}`}
+          onClick={() => setFilter("MIS")}
+        >
+          MIS Intraday ({misCount})
+        </button>
+      </div>
       <div className={styles.orderTable}>
         <table>
           <thead>
@@ -55,7 +86,15 @@ export default function Orders() {
             </tr>
           </thead>
           <tbody>
-            {allOrders.map((order) => {
+
+            { filteredOrders.length === 0 ? (
+              <tr>
+                <td colSpan="6" style={{textAlign:"center", padding:'30px', color:"#888"
+                }}>
+                  No {filter} orders found</td>
+              </tr>
+            ) : (
+            filteredOrders.map((order) => {
               const isBuy = order.mode === "BUY";
               return (
                 <tr key={order._id}>
@@ -74,7 +113,7 @@ export default function Orders() {
                   </td>
                 </tr>
               );
-            })}
+            }))}
           </tbody>
         </table>
       </div>

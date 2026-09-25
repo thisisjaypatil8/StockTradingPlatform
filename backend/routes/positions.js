@@ -8,4 +8,8 @@ router.get("/", isLoggedIn,
     wrapAsync(positionController.getAllPositions)
 );
 
+router.post("/squareoffAll",isLoggedIn,
+    wrapAsync(positionController.squareOffAllPositions)
+);
+
 module.exports = router;

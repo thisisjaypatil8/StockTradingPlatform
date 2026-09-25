@@ -148,3 +148,61 @@
     min-width: 550px;
   }
 }
+
+/* Filter Tabs */
+.filterContainer {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.filterBtn {
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  color: #666;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.filterBtn:hover {
+  background: #ebebeb;
+  color: #222;
+}
+
+.filterBtnActive {
+  background: #4184f3;
+  border-color: #4184f3;
+  color: #fff;
+  font-weight: 600;
+}
+
+.filterBtnActive:hover {
+  background: #3367d6;
+  color: #fff;
+}
+
+/* Product Badges */
+.productBadge {
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  display: inline-block;
+  letter-spacing: 0.5px;
+}
+
+.productCnc {
+  background-color: #f0f4ff;
+  color: #3b5998;
+  border: 1px solid #d0ddff;
+}
+
+.productMis {
+  background-color: #fff5eb;
+  color: #d96b27;
+  border: 1px solid #ffd8b8;
+}

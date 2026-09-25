@@ -4,7 +4,7 @@ import PositionRow from "./PositionRow";
 import PositionSummary from "./PositionSummary";
 
 export default function Positions() {
-  const { allPositions, loading, metrics, handleSquareOff } = usePositions();
+  const { allPositions, loading, metrics, handleSquareOff, handleSquareOffAll } = usePositions();
 
   if (loading) {
     return (
@@ -16,13 +16,34 @@ export default function Positions() {
 
   return (
     <div className={styles.positionsContainer}>
-      <h3 className={styles.title}>Positions ({allPositions.length})</h3>
+
+      <div style={{ marginBottom: "1rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h3 className={styles.title}>Positions ({allPositions.length})</h3>
+        {allPositions.some(p => (p.netQty !== undefined ? p.netQty !== 0 : p.qty !== 0)) &&
+          (
+            <button
+              onClick={handleSquareOffAll}
+              style={{
+                backgroundColor: "#ff5722",
+                color: "#fff",
+                border: "none",
+                padding: "8px 16px",
+                borderRadius: "4px",
+                fontWeight: "600",
+                cursor: "pointer",
+              }}
+            >
+              Square Off All
+            </button>
+          )
+        }
+      </div>
 
       <div className={styles.orderTable}>
         <table>
           <thead>
             <tr>
-              <th>Product</th>
+              
               <th>Instrument</th>
               <th>Type</th>
               <th>Qty.</th>

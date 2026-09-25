@@ -1,164 +1,248 @@
 const ExpressError = require("../utils/ExpressError");
 
-const TICKER_ALIASES = {
+// config
+const ALIASES = Object.freeze({
     HUL: "HINDUNILVR",
-};
+});
 
-const resolveSymbol = (sym) => {
-    const upper = sym.toUpperCase();
-    const resolved = TICKER_ALIASES[upper] || upper;
-    return resolved.includes(".") ? resolved : `${resolved}.NS`;
+const RANGES = new Set(["1d", "5d", "1mo", "3mo", "6mo", "1y"]);
+const INTERVALS = new Set(["1m", "5m", "15m", "30m", "1h", "1d"]);
+
+const QUOTE_TTL = 60_000;
+const HISTORY_TTL = 300_000;   // 5 min
+const FETCH_TIMEOUT = 8_000;
+
+const quoteCache = new Map();
+const historyCache = new Map();
+const inFlight = new Map();
+
+// utilities
+const round2 = value => Number(Number(value).toFixed(2));
+
+function validateSymbol(symbol) {
+    if (!symbol || !/^[A-Za-z0-9.-]{1,20}$/.test(symbol)) {
+        throw new ExpressError(400, "Invalid symbol format");
+    }
 }
 
-// Simple In-Memory TTL Cache for 1 Minute
-const quoteCache = new Map();
-const CACHE_TTL_MS = 60 * 1000; // 1 minute freshness
+function resolveSymbol(symbol) {
+    const upper = symbol.toUpperCase();
+    const ticker = ALIASES[upper] || upper;
+    return ticker.includes('.') ? ticker : `${ticker}.NS`;
+}
 
-// Graph / Chart data TTL Cache of 5 minutes
-const historyCache = new Map();
-const HISTORY_CACHE_TTL_MS = 4 * 60 * 1000; // 5 minutes freshness
+function getCache(cache, key) {
+    const entry = cache.get(key);
 
-
-// Yahoo finance Live market Quote Proxy
-module.exports.getQuote = async (req, res) => {
-    const { symbol } = req.params;   // INFY or Reliance
-    const yahooSymbol = resolveSymbol(symbol);
-
-    // yahoo finance fetch call
-    const cached = quoteCache.get(yahooSymbol);
-    if(cached && Date.now() < cached.expiry){
-        //Cache hit! Zero external API calls!
-        return res.status(200).json(cached.data);
+    if (!entry) return null;
+    if (Date.now() >= entry.expiresAt) {
+        cache.delete(key);
+        return null;
     }
-    //2. Cache miss or expired - Fetch from Yahoo finance
-    const response = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=1d&interval=5m`, {
-        headers: { "User-Agent": "Mozilla/5.0" }
+    return entry.data;
+}
+
+function setCache(cache, key, data, ttl) {
+    cache.set(key, {
+        data,
+        expiresAt: Date.now() + ttl
     });
+}
 
-    if (!response.ok) {
-        return res.status(response.status).json({ error: `Yahoo Finance error: ${response.statusText}` });
-    }
+// Yahoo API
+async function fetchMarketData(symbol, params, errorMessage) {
+    const key = `${symbol}?${params}`;
 
-    const data = await response.json();
-    const result = data?.chart?.result?.[0];
+    // Prevent duplicate upstream requests during a cache miss
+    if (inFlight.has(key)) return inFlight.get(key);
 
-    if (!result) {
-        return res.status(404).json({ error: `Stock symbol '${symbol}' not found on Yahoo Finance!` });
-    }
+    const request = fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?${params}`,
+        {
+            headers: {
+                "User-Agent": "Mozilla/5.0"
+            },
+            signal: AbortSignal.timeout(FETCH_TIMEOUT),
+        }
+    )
+        .then(async response => {
+            if (!response.ok) {
+                throw new ExpressError(
+                    response.status,
+                    `Yahoo Finance error: ${response.statusText}`
+                );
+            }
 
-    // extract needed values from meta
-    const meta = result.meta;
+            const data = await response.json();
+            const result = data?.chart?.result?.[0];
+            if (!result) {
+                throw new ExpressError(404, errorMessage);
+            }
+
+            return result;
+        })
+        .catch(err => {
+            if (
+                err.name === "TimeoutError" || err.name === "AbortError"
+            ) {
+                throw new ExpressError(504, "Market data request timed out!");
+            }
+            throw err;
+        })
+        .finally(() => {
+            inFlight.delete(key);
+        });
+    inFlight.set(key, request);
+    return request;
+}
+
+// Common Market math
+function getPriceSnapshot(meta) {
     const currentPrice = meta.regularMarketPrice;
 
-    const previousClose = meta.chartPreviousClose || meta.previousClose || currentPrice;
-
-    // How much changed?
+    const previousClose = meta.chartPreviousClose ?? meta.previousClose ?? currentPrice;
     const change = currentPrice - previousClose;
-    const percentChange = previousClose ? ((change / previousClose) * 100).toFixed(2) : "0.00";
 
-    // 5. for frontend Clean formatted response
-    const formattedResponse = {
-        symbol: meta.symbol,
-        name: symbol.toUpperCase(),
-        price: Number(currentPrice.toFixed(2)),
-        previousClose: Number(previousClose.toFixed(2)),
-        change: Number(change.toFixed(2)),
-        percent: `${change >= 0 ? "+" : ""}${percentChange}%`,
-        isLoss: change < 0,
-        currency: meta.currency || "INR",
+    return {
+        currentPrice,
+        previousClose,
+        change,
     };
 
-    //3. Save into cache with 1 min expiry
-    quoteCache.set(yahooSymbol, {
-        data: formattedResponse,
-        expiry: Date.now() + CACHE_TTL_MS,
-    });
+}
 
-    res.status(200).json(formattedResponse);
+// Controllers
 
+module.exports.getQuote = async (req, res) => {
+    const { symbol } = req.params;
+
+    validateSymbol(symbol);
+
+    const yahooSymbol = resolveSymbol(symbol);
+
+    const cached = getCache(quoteCache, yahooSymbol);
+    if (cached) {
+        return res.json(cached);
+    }
+
+    const result = await fetchMarketData(
+        yahooSymbol,
+        "range=1d&interval=5m",
+        `Stock symbol '${symbol}' not found on Yahoo Finance!`
+    );
+
+    const {
+        currentPrice, previousClose, change
+    } = getPriceSnapshot(result.meta);
+
+    const data = {
+        symbol: result.meta.symbol,
+        name: symbol.toUpperCase(),
+        price: round2(currentPrice),
+        previousClose: round2(previousClose),
+        change: round2(change),
+        percent: `${change >= 0 ? "+" : ""}${(
+            previousClose
+                ? (change / previousClose) * 100
+                : 0
+        ).toFixed(2)}%`,
+        isLoss: change < 0,
+        currency: result.meta.currency || "INR",
+    }
+
+    setCache(quoteCache, yahooSymbol, data, QUOTE_TTL);
+    return res.json(data);
 };
 
-// Yahoo Finance Stock Historical Fluctuation data
-module.exports.getHistory = async (req, res) => {
 
+
+module.exports.getHistory = async (req, res) => {
     const { symbol } = req.params;
     const range = req.query.range || "1d";
     const interval = req.query.interval || "5m";
 
-    const yahooSymbol = resolveSymbol(symbol);
-    const cacheKey = `${yahooSymbol}_${range}_${interval}`;
-    
-    //1. Check Cache History
-    const cached = historyCache.get(cacheKey);
-    if(cached && Date.now() < cached.expiry){
-        return res.status(200).json(cached.data);
+    validateSymbol(symbol);
+
+    if (!RANGES.has(range)) {
+        throw new ExpressError(
+            400,
+            `Invalid range! Allowed: ${[...RANGES].join(", ")}`
+        );
     }
 
-    //2. Cache miss - Fetch from Yahoo
-    const response = await fetch(
-        `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=${range}&interval=${interval}`,
-        {
-            headers: { "User-Agent": "Mozilla/5.0" }
-        }
+    if (!INTERVALS.has(interval)) {
+        throw new ExpressError(
+            400,
+            `Invalid interval! Allowed: ${[...INTERVALS].join(", ")}`
+        );
+    }
+
+    const yahooSymbol = resolveSymbol(symbol);
+    const cacheKey = `${yahooSymbol}:${range}:${interval}`;
+
+    const cached = getCache(historyCache, cacheKey);
+
+    if (cached) {
+        return res.json(cached);
+    }
+
+    const result = await fetchMarketData(
+        yahooSymbol,
+        `range=${encodeURIComponent(range)}&interval=${encodeURIComponent(interval)}`,
+        `No historical chart data found for ${symbol}`
     );
 
-    if (!response.ok) {
-        return res.status(response.status).json({ error: `Yahoo Finance error: ${response.statusText}` });
-    }
-
-    const data = await response.json();
-    const result = data?.chart?.result?.[0];
-
-    if (!result || !result.timestamp || !result.indicators?.quote?.[0]?.close) {
-        return res.status(404).json({ error: `No historical chart data found for ${symbol}` });
-    }
-
-    // Extract Price data
     const timestamps = result.timestamp;
-    const closePrices = result.indicators.quote[0].close;
+    const closes = result.indicators?.quote?.[0]?.close;
 
-    //Timestamps to readable dates
-    const formattedLabels = [];
-    const formattedPrices = [];
-
-    // iterate over all timestamps and prices
-    for (let i = 0; i < timestamps.length; i++) {
-        const price = closePrices[i];
-
-        // Filter out null/undefined prices
-        if (price !== null && price !== undefined) {
-            const date = new Date(timestamps[i] * 1000);
-            const timeStr = date.toLocaleTimeString("en-IN", {
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: true,
-            });
-            formattedLabels.push(timeStr);
-            formattedPrices.push(Number(price.toFixed(2)));
-        }
+    if (!timestamps || !closes) {
+        throw new ExpressError(
+            404,
+            `No historical chart data found for ${symbol}`
+        );
     }
 
-    const meta = result.meta;
-    const currentPrice = meta.regularMarketPrice;
-    const previousClose = meta.chartPreviousClose || meta.previousClose || currentPrice;
-    const change = currentPrice - previousClose;
+    const labels = [];
+    const prices = [];
 
-    const historyData = {
-        symbol: meta.symbol,
+    for (let i = 0; i < timestamps.length; i++) {
+        const price = closes[i];
+
+        if (price == null) continue;
+
+        labels.push(
+            new Date(timestamps[i] * 1000)
+                .toLocaleTimeString("en-IN", {
+                    timeZone: "Asia/Kolkata",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: true,
+                })
+        );
+
+        prices.push(round2(price));
+    }
+
+    const {
+        currentPrice,
+        change,
+    } = getPriceSnapshot(result.meta);
+
+    const data = {
+        symbol: result.meta.symbol,
         name: symbol.toUpperCase(),
-        currentPrice: Number(currentPrice.toFixed(2)),
-        change: Number(change.toFixed(2)),
+        currentPrice: round2(currentPrice),
+        change: round2(change),
         isLoss: change < 0,
-        labels: formattedLabels,
-        prices: formattedPrices,
+        labels,
+        prices,
     };
 
-    // Save into history cache
-    historyCache.set(cacheKey, {
-        data: historyData, 
-        expiry: Date.now() + HISTORY_CACHE_TTL_MS
-    });
+    setCache(
+        historyCache,
+        cacheKey,
+        data,
+        HISTORY_TTL
+    );
 
-    return res.status(200).json(historyData);
-
+    return res.json(data);
 };

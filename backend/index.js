@@ -7,7 +7,7 @@ const positionsRoutes = require("./routes/positions");
 const holdingsRoutes = require("./routes/holdings");
 const marketRoutes = require("./routes/market");
 const fundsRoutes = require("./routes/funds");
-
+const { startRmsScheduler } = require("./services/rmsScheduler");
 const passport = require("passport");
 const User = require("./model/UserModel");
 const LocalStrategy = require("passport-local").Strategy;
@@ -54,6 +54,9 @@ app.use((err, req, res, next) =>{
 
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
+
+    // Start Autonomous RMS Scheduler
+    startRmsScheduler();
 
     mongoose.connect(url)
         .then(() => console.log("Connected to MongoDB"))
