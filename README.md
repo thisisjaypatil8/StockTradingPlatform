@@ -109,8 +109,8 @@ if (!updatedUser) throw new ExpressError(400, "Insufficient funds!");
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/your-username/StockTradingPlatform.git
-cd StockTradingPlatform
+git clone https://github.com/thisisjaypatil8/StockTradingPlatform-.git
+cd StockTradingPlatform-
 ```
 
 ### 2. Backend Setup
@@ -166,7 +166,33 @@ Landing page runs on: `http://localhost:5173`
 
 ---
 
-## 📜 Placement Interview Talking Points (SDE-1)
-- **ACID Transaction Guarantees:** *"I engineered order placement using MongoDB multi-document transactions so that order creation, balance deduction, and holding creation succeed or fail atomically as a single business operation."*
-- **Race Condition Prevention:** *"To prevent concurrent double-spending, I implemented conditional atomic `$gte` decrements on the wallet balance directly at the database layer rather than checking in application memory."*
-- **Autonomous Risk Management:** *"I implemented a server-side background daemon running on Indian Standard Time that automatically liquidates all open intraday positions at 03:20 PM and settles realized P&L directly into the cash ledger."*
+## 🛡️ Production Hardening & Reliability Engineering
+
+### 1. Centralized Error Classification & Operational Boundaries
+- Custom `ExpressError` class separates **operational runtime failures** (`isOperational = true`) from unhandled programming exceptions.
+- Automated error transformers intercept library-specific exceptions and map them to standard HTTP status codes:
+  - MongoDB `CastError` (malformed ObjectId) ➔ `400 Bad Request`
+  - MongoDB `E11000` (duplicate key constraint) ➔ `409 Conflict`
+  - Mongoose `ValidationError` (schema mismatch) ➔ `400 Bad Request`
+  - `JsonWebTokenError` / `TokenExpiredError` ➔ `401 Unauthorized`
+- **Environment Isolation:** Emits full V8 stack traces in development mode, while strictly suppressing internal system details in production mode to prevent attack surface reconnaissance.
+
+### 2. Zero-Trust Security Posture
+- **HTTP Header Hardening (`helmet`):** Automatically injects standard security headers (HSTS, CSP, X-Frame-Options: SAMEORIGIN, X-Content-Type-Options: nosniff) and strips framework fingerprinting (`X-Powered-By`).
+- **NoSQL Injection Sanitization (`sanitizeData`):** Recursive pre-controller middleware that scans and strips MongoDB query operators (`$` and `.`) from `req.body`, `req.query`, and `req.params`.
+- **Brute-Force Rate Limiting (`express-rate-limit`):** Sliding-window rate limiter enforcing a strict ceiling of **10 requests per 15 minutes per IP** across `/login` and `/signup`.
+- **Strict Origin Whitelisting:** Restricts CORS credentials and cross-origin access strictly to registered frontend origins (`http://localhost:5173`, `http://localhost:3000`).
+
+### 3. Order Idempotency Guard (`X-Idempotency-Key`)
+- Client-side order dispatches generate unique transaction UUIDs transmitted via the `X-Idempotency-Key` HTTP header.
+- Server-side `idempotencyGuard` middleware intercepts duplicate submissions resulting from network retry loops or button double-clicks.
+- If a key exists within its 2-minute Time-To-Live (TTL) sliding window, the backend returns the cached settlement response without executing redundant database debits.
+
+### 4. Process Lifecycle & Graceful Shutdown
+- **DB-First Bootstrapping:** Invariant ensuring the HTTP server starts listening only after MongoDB connection handshake succeeds.
+- **Signal Interception (`SIGTERM` / `SIGINT`):** Safely drains active in-flight database transactions, shuts down the HTTP listener to reject new traffic, and cleanly disconnects Mongoose connection sockets with a 10-second fail-safe timer.
+
+---
+
+## 📄 License
+This project is open-source and available under the [MIT License](LICENSE).
