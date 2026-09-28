@@ -24,7 +24,13 @@ export default function BuyActionWindow({ uid, mode }) {
         mode: mode,
         product: productType,
         isSimulation: isSimulationMode,
+      },{
+        headers: {
+          "X-Idempotency-Key":
+          `${uid}-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`
+        }
       });
+      
       alert(res.data.message || `${mode} order placed Successfully!`);
       closeOrderWindow();
       window.location.reload();

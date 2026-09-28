@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const wrapAsync = require("../utils/wrapAsync");
-const { isLoggedIn, checkMarketHours, validateOrderInput } = require("../middleware");
+const { isLoggedIn, checkMarketHours, validateOrderInput, idempotencyGuard } = require("../middleware");
 const ordersController = require("../controllers/orders");
 
 // allorders
@@ -15,6 +15,7 @@ router.post("/newOrder",
     isLoggedIn,
     checkMarketHours,
     validateOrderInput,
+    idempotencyGuard,
     wrapAsync(ordersController.createOrder)
 );
 

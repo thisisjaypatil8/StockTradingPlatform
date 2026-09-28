@@ -1,3 +1,4 @@
+const rateLimit = require("express-rate-limit");
 const jwt = require("jsonwebtoken");
 const ExpressError = require("./utils/ExpressError");
 
@@ -95,3 +96,155 @@ module.exports.validateOrderInput = (req, res, next) => {
 
     next();
 };
+
+
+// Idempotency Guard(Prevents accidental duplicate orders)
+const idempotencyStore = new Map();
+
+//Evict keys older than 2 min to prevent memory leaks
+const IDEMPOTENCY_TTL = 1000 * 60 * 2; //2 min
+
+module.exports.idempotencyGuard = (req, res, next) =>{
+    //1. Check if client provided an idempotent key
+    const key = req.headers["x-idempotency-key"];
+    if(!key){
+       //If not provided, continue normally (non-breaking)
+       return next();
+    }
+    
+    const cached = idempotencyStore.get(key);
+
+    //2. If key exists and is still valid
+    if(cached){
+        if(Date.now() < cached.expiresAt){
+            //Return cached response without touching DB or debiting funds!
+            return res.status(cached.statusCode).json(cached.body);
+        } else{
+            //Old entry expired → delete
+            idempotencyStore.delete(key);
+        }
+    }
+
+    //3. Intercept res.json to capture the response for caching
+    const originalJson = res.json.bind(res);
+    res.json = (body) => {
+        // cache response if everything is okay
+        if(res.statusCode >= 200 && res.statusCode < 300){ 
+            idempotencyStore.set(key, {
+                statusCode: res.statusCode,
+                body,
+                expiresAt: Date.now() + IDEMPOTENCY_TTL
+            });
+        }
+        // call original response sender
+        return originalJson(body);
+    };
+    
+    // pass response to next handler
+    next();
+};
+
+
+
+//1. Database & library error transformers
+const handleCastErrorDB = (err) => {
+    const message = `Invalid ${err.path}: ${err.value}`;
+    return new ExpressError(400, message);
+};
+
+const handleDuplicateFieldsDB = (err) => {
+    const field = Object.keys(err.keyValue || {})[0] || "field";
+    const value = err.keyValue ? err.keyValue[field] : "";
+    const message = `Duplicate value '${value}' for field '${field}'. Please use another value!`
+    return new ExpressError(409, message);
+};
+
+const handleValidationErrorDB = (err) => {
+    const errors = Object.values(err.errors).map((el) => el.message);
+    const message = `Invalid input: ${errors.join(". ")}`
+    return new ExpressError(400, message);
+};
+
+const handleJWTError = () =>{
+    return new ExpressError(401, "Invalid authentication token! Please log in again.");
+};
+
+const handleJWTExpiredError = () => {
+    return new ExpressError(401, "Your session has expired! Please log in again.");
+};
+
+//2. Central Error Handling middleware
+module.exports.errorHandler = (err, req, res, next) => {
+    let error = err;
+    error.statusCode = err.statusCode || 500;
+    error.status = err.status || "error";
+
+    //Transform library-specific errors into standard ExpressError instances
+    if (err.name === "CastError") error = handleCastErrorDB(err);
+    if (err.code === 11000) error = handleDuplicateFieldsDB(err);
+    if (err.name === "ValidationError") error = handleValidationErrorDB(err);
+    if(err.name === "JsonWebTokenError") error = handleJWTError(err);
+    if (err.name === "TokenExpiredError") error = handleJWTExpiredError(err);
+
+    const isDev = process.env.NODE_ENV !== "production";
+    
+    // In Development: Full stack trace for rapid debugging
+    if(isDev){
+        return res.status(error.statusCode).json({
+            success: false,
+            status: error.status,
+            error: error.message,
+            stack: error.stack,
+        });
+    }
+
+    // In Production
+    if(error.isOperational){
+        return res.status(error.statusCode).json({
+            success: false,
+            error: error.message
+        })
+    }
+
+    // In Production: Unknown Programming bug, leak zero internals
+    console.error("FATAL UNEXPECTED ERROR 💥", error);
+
+    return res.status(500).json({
+        success: false,
+        message: "Something went wrong on our end. Please try again later."
+    })
+   
+}
+
+// Sanitizes keys starting with '$' or containing '.' to neutralize NoSQL injection
+const cleanObject = (obj) => {
+    if (!obj || typeof obj !== "object") return;
+    for(const key of Object.keys(obj)){
+        if(key.startsWith("$") || key.includes(".")){
+            delete obj[key]; //Strip dangerous operators
+        } else if (typeof obj[key] === "object"){
+            cleanObject(obj[key]); // recurse deeper for nested objects
+        }
+    }
+};
+
+module.exports.sanitizeData = (req, res, next) => {
+    if(req.body) cleanObject(req.body);
+    if(req.query) cleanObject(req.query);
+    if(req.params) cleanObject(req.params);
+    next();
+};
+
+// Rate limiter to prevent brute-force attacks on login/signup
+module.exports.authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10, // Limit each IP to 10 attempts
+    standardHeaders: true, // Return rate limit info in X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset headers
+    legacyHeaders: false, // Disable X-RateLimit-* headers
+    message: {
+        success: false,
+        error: "Too many attempts from this IP! Please wait 15 minutes before trying again."
+    }
+});
+
+
