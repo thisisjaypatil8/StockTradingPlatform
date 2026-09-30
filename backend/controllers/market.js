@@ -112,16 +112,13 @@ function getPriceSnapshot(meta) {
 
 // Controllers
 
-module.exports.getQuote = async (req, res) => {
-    const { symbol } = req.params;
-
+async function getSingleQuote(symbol) {
     validateSymbol(symbol);
-
     const yahooSymbol = resolveSymbol(symbol);
 
     const cached = getCache(quoteCache, yahooSymbol);
     if (cached) {
-        return res.json(cached);
+        return cached;
     }
 
     const result = await fetchMarketData(
@@ -147,12 +144,55 @@ module.exports.getQuote = async (req, res) => {
         ).toFixed(2)}%`,
         isLoss: change < 0,
         currency: result.meta.currency || "INR",
-    }
+    };
 
     setCache(quoteCache, yahooSymbol, data, QUOTE_TTL);
+    return data;
+}
+
+// Single Quote Controller
+module.exports.getQuote = async (req, res) => {
+    const { symbol } = req.params;
+    const data = await getSingleQuote(symbol);
     return res.json(data);
 };
 
+// Batch Quote Controller (Kills N+1 waterfall)
+module.exports.getBatchQuotes = async (req, res) => {
+    const rawSymbols = req.query.symbols;
+    if (!rawSymbols) {
+        return res.status(200).json({});
+    }
+
+    const symbols = rawSymbols.split(",").map(s => s.trim()).filter(Boolean);
+    const quotes = {};
+
+    await Promise.allSettled(
+        symbols.map(async (sym) => {
+            try {
+                const quote = await getSingleQuote(sym);
+                quotes[sym.toUpperCase()] = quote;
+            } catch (err) {
+                console.warn(`[BatchQuote] Failed to fetch ${sym}:`, err.message);
+                quotes[sym.toUpperCase()] = null;
+            }
+        })
+    );
+
+    return res.status(200).json(quotes);
+};
+
+async function getCurrentStockPrice(symbol) {
+    try {
+        const quote = await getSingleQuote(symbol);
+        return quote.price;
+    } catch (err) {
+        console.warn(`[getCurrentStockPrice] Fetch error for ${symbol}:`, err.message);
+        return null;
+    }
+}
+
+module.exports.getCurrentStockPrice = getCurrentStockPrice;
 
 
 module.exports.getHistory = async (req, res) => {

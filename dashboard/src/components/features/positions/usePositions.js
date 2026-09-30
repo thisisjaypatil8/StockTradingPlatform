@@ -17,26 +17,21 @@ export const usePositions = () => {
 
       if (positionsData.length === 0) return;
 
-      // Parallel fetch live LTP for each stock
-      const quotePromises = positionsData.map((stock) =>
-        API.get(`market/quote/${stock.name}`)
-          .then((qRes) => ({ name: stock.name, quote: qRes.data }))
-          .catch(() => ({ name: stock.name, quote: null }))
-      );
+      // Single batched quotes fetch (eliminates N+1 waterfall)
+      const symbols = positionsData.map((s) => s.name).join(",");
+      let quoteMap = {};
+      try {
+        const qRes = await API.get(`/market/quotes?symbols=${symbols}`);
+        quoteMap = qRes.data || {};
+      } catch (qErr) {
+        console.warn("Positions batch quote fetch failed:", qErr);
+      }
 
-      const results = await Promise.allSettled(quotePromises);
       if (!isMountedRef.current) return;
-
-      const quoteMap = {};
-      results.forEach((r) => {
-        if (r.status === "fulfilled" && r.value?.quote) {
-          quoteMap[r.value.name] = r.value.quote;
-        }
-      });
 
       setAllPositions((prevPositions) =>
         prevPositions.map((stock) => {
-          const live = quoteMap[stock.name];
+          const live = quoteMap[stock.name.toUpperCase()] || quoteMap[stock.name];
           if (!live) return stock;
 
           const livePrice = live.price != null ? Number(live.price) : stock.price;
@@ -72,28 +67,51 @@ export const usePositions = () => {
     const squareOffMode = net > 0 ? "SELL" : "BUY";
     const squareOffQty = Math.abs(net);
 
-    const isConfirmed = window.confirm(
-      `Square Off Position?\n\nStock: ${stock.name}\nType: ${net > 0 ? "LONG EXIT" : "SHORT COVER"}\nAction: ${squareOffMode} ${squareOffQty} shares @ ~₹${stock.price}\n\nProceed?`
-    );
+    let executionPrice = Number(stock.price);
 
-    if (!isConfirmed) return;
+    // ⚡ Simulator check: User se exit price input maango!
+    const isSimMode = localStorage.getItem("isSimulationMode") === "true";
+    if (isSimMode) {
+      const userPrice = window.prompt(
+        `Simulator Mode Active!\nEnter Exit Execution Price for ${stock.name} (${squareOffMode} ${squareOffQty} shares):`,
+        stock.price || stock.avg
+      );
+      if (userPrice === null) return; // User ne Cancel dabaya
+      const parsed = parseFloat(userPrice);
+      if (!isNaN(parsed) && parsed > 0) {
+        executionPrice = parsed;
+      }
+    } else {
+      const isConfirmed = window.confirm(
+        `Square Off Position?\n\nStock: ${stock.name}\nType: ${net > 0 ? "LONG EXIT" : "SHORT COVER"}\nAction: ${squareOffMode} ${squareOffQty} shares @ ~₹${stock.price}\n\nProceed?`
+      );
+      if (!isConfirmed) return;
+    }
 
     try {
       const res = await API.post("/newOrder", {
         name: stock.name,
         qty: squareOffQty,
-        price: Number(stock.price),
+        price: executionPrice,
         mode: squareOffMode,
         product: "MIS",
+        isSimulation: isSimMode,
       });
 
-      alert(res.data.message || `Position squared off successfully!`);
+      const settlement = res.data.settlement;
+      let msg = `Position squared off successfully!`;
+      if (settlement && settlement.realizedPnL !== undefined) {
+        const sign = settlement.realizedPnL >= 0 ? "+" : "";
+        msg += `\n\n Math Settlement:\n• Exit Price: ₹${executionPrice.toFixed(2)}\n• Realized P&L: ${sign}₹${Number(settlement.realizedPnL).toFixed(2)}\n• Available Cash: ₹${Number(settlement.availableCash).toLocaleString("en-IN")}`;
+      }
+      alert(msg);
       // Reactive re-fetch: zero page reload!
       fetchPositions();
     } catch (err) {
       alert(err.response?.data?.error || `Failed to square off position!`);
     }
   };
+
 
   // 1-Click RMS Auto Square-Off for All open positions
   const handleSquareOffAll = async () => {

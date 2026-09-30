@@ -12,7 +12,18 @@ const UserSchema = new Schema({
             type:Number,
             default:100000,
         },
-        
+        totalDeposited: {
+            type: Number,
+            default:100000, //initial balance is the first deposit
+        },
+        totalWithdrawn: {
+            type: Number,
+            default: 0, //after first deposit 
+        },
+        lifetimeRealizedPnL: {
+            type: Number,
+            default: 0,
+        },
     },
     role: {
         type: String,

@@ -7,12 +7,22 @@ module.exports.getFunds = async (req, res) => {
 
     if(!user) throw new ExpressError(404, "User not found!");
 
+    // Auto-migrate legacy users who don't have deposit/withdrawal tracking
+    if (user.funds && user.funds.totalDeposited == null) {
+        user.funds.totalDeposited = 100000;  // Initial balance counts as first deposit
+        user.funds.totalWithdrawn = 0;
+        await user.save();
+    }
+
     // Fallback for legacy documents
     const availableCash = user.funds?.availableCash !== undefined ? user.funds.availableCash : 100000;
 
     res.status(200).json({
         success: true,
         availableCash,
+        totalDeposited: user.funds.totalDeposited,
+        totalWithdrawn: user.funds.totalWithdrawn,
+        lifetimeRealizedPnL: user.funds.lifetimeRealizedPnL || 0,
     });
 };
 
@@ -27,14 +37,17 @@ module.exports.addFunds = async (req, res) => {
     // Atomic increment
     const updatedUser = await User.findByIdAndUpdate(
         req.user.id,
-        {$inc: {"funds.availableCash": amount} },
-        {new: true}
+        {$inc: {"funds.availableCash": amount, "funds.totalDeposited":amount} },
+        {returnDocument: 'after'}
     )
 
     res.status(200).json({
         success: true,
         message: `₹${amount.toLocaleString('en-IN')} deposited successfully`,
         availableCash: updatedUser.funds.availableCash,
+        totalDeposited: updatedUser.funds.totalDeposited,
+        totalWithdrawn: updatedUser.funds.totalWithdrawn || 0,
+        lifetimeRealizedPnL: updatedUser.funds.lifetimeRealizedPnL || 0,
     });
 };
 
@@ -49,8 +62,8 @@ module.exports.withdrawFunds = async (req, res) => {
     // Atomic check: deduct only if availableCash >= amount
     const updatedUser = await User.findOneAndUpdate(
         { _id: req.user.id, "funds.availableCash": { $gte: amount } },
-        { $inc: { "funds.availableCash": -amount } },
-        { new: true }
+        { $inc: { "funds.availableCash": -amount, "funds.totalWithdrawn":amount } },
+        { returnDocument: 'after' }
     );
     if (!updatedUser) {
         throw new ExpressError(400, "Insufficient funds! You cannot withdraw more than your available cash.");
@@ -59,5 +72,8 @@ module.exports.withdrawFunds = async (req, res) => {
         success: true,
         message: `₹${amount.toLocaleString("en-IN")} withdrawn successfully!`,
         availableCash: updatedUser.funds.availableCash,
+        totalDeposited: updatedUser.funds.totalDeposited || 100000,
+        totalWithdrawn: updatedUser.funds.totalWithdrawn,
+        lifetimeRealizedPnL: updatedUser.funds.lifetimeRealizedPnL || 0,
     });
 };

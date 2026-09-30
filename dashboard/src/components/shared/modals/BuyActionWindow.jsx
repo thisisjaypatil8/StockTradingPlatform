@@ -31,7 +31,17 @@ export default function BuyActionWindow({ uid, mode }) {
         }
       });
       
-      alert(res.data.message || `${mode} order placed Successfully!`);
+      const settlement=res.data.settlement;
+      let alertMsg =`${mode} order executed successfully!`
+      if(settlement){
+        if(mode === "SELL"){
+          const sign = settlement.realizedPnL >= 0 ? "+" : "";
+          alertMsg += `\n\ Settlement: \n• Qty Sold: ${stockQuantity} @ ₹${Number(stockPrice).toFixed(2)}\n• Cash Credited to Wallet: ₹${Number(settlement.cashDiff).toLocaleString("en-IN")}\n• Realized P&L: ${sign}₹${Number(settlement.realizedPnL).toFixed(2)}\n• Available Cash: ₹${Number(settlement.availableCash).toLocaleString("en-IN")}`;
+        }else{
+          alertMsg += `\n\n Settlement:\n• Qty Bought: ${stockQuantity} @ ₹${Number(stockPrice).toFixed(2)}\n• Cash Debited: ₹${Number(Math.abs(settlement.cashDiff)).toLocaleString("en-IN")}\n• Available Cash: ₹${Number(settlement.availableCash).toLocaleString("en-IN")}`;
+        }
+      }
+      alert(alertMsg);
       closeOrderWindow();
       window.location.reload();
     } catch (err) {

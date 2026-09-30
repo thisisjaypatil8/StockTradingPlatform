@@ -1,3 +1,113 @@
+/**
+ * portfolioMath.js — Canonical Institutional Financial Math Module
+ *
+ * Core Accounting Invariant:
+ *   Account Equity (E_t) = Cash + Margin Blocked + CNC Market Value + MIS Unrealized
+ *   Net External Capital (F_t) = Gross Deposits - Gross Withdrawals
+ *   Cumulative P&L (P_t) = Account Equity - Net External Capital
+ *
+ * Precision Rule:
+ *   Calculations maintain full IEEE-754 precision without intermediate .toFixed()
+ */
+
+export const calculateAccountMetrics = ({
+    cash = 0,
+    holdings = [],
+    positions = [],
+    grossDeposited = 0,
+    grossWithdrawn = 0,
+}) => {
+    const availableCash = Number(cash) || 0;
+    const grossDep = Number(grossDeposited) || 0;
+    const grossWith = Number(grossWithdrawn) || 0;
+    const netExternalCapital = grossDep - grossWith;
+
+    // 1. CNC Holdings Pass
+    let cncCostBasis = 0;
+    let cncMarketValue = 0;
+    let cncDayPnL = 0;
+
+    holdings.forEach((stock) => {
+        const qty = Number(stock.qty) || 0;
+        const avg = Number(stock.avg || stock.avgPrice) || 0;
+        const ltp = Number(stock.price) || 0;
+        const prevClose = Number(stock.previousClose) || ltp;
+
+        cncCostBasis += qty * avg;
+        cncMarketValue += qty * ltp;
+        cncDayPnL += qty * (ltp - prevClose);
+    });
+
+    const cncUnrealizedPnL = cncMarketValue - cncCostBasis;
+
+    // 2. MIS Positions Pass (Signed Branch-Free Formula)
+    let misRealizedPnL = 0;
+    let misUnrealizedPnL = 0;
+    let totalMarginBlocked = 0;
+
+    positions.forEach((stock) => {
+        const net = stock.netQty !== undefined ? Number(stock.netQty) : (Number(stock.qty) || 0);
+        const avg = Number(stock.avgEntry ?? stock.avg ?? 0);
+        const ltp = Number(stock.price) || 0;
+        const realized = Number(stock.realizedPnL) || 0;
+        const marginBlocked = Number(stock.marginBlocked) || (Math.abs(net) * avg) / 5;
+
+        // Signed formula handles Long (net > 0) & Short (net < 0) automatically:
+        const unrealized = (ltp - avg) * net;
+
+        misRealizedPnL += realized;
+        misUnrealizedPnL += unrealized;
+        totalMarginBlocked += marginBlocked;
+    });
+
+    // 3. Account Equity (Net Liquidation Value)
+    // Cash already holds realized profits/losses; unrealized is floating
+    const equity = availableCash + totalMarginBlocked + cncMarketValue + misUnrealizedPnL;
+
+    // 4. Cumulative P&L (True Profit Created)
+    const cumulativePnL = equity - netExternalCapital;
+
+    // 5. Crash-Proof Lifetime Return % (Bound denominator to gross capital)
+    const lifetimeReturnPct = grossDep > 0 ? (cumulativePnL / grossDep) * 100 : 0;
+
+    // 6. Day P&L Separation
+    const positionsDayPnL = misRealizedPnL + misUnrealizedPnL;
+    const holdingsDayPnL = cncDayPnL;
+    const totalDayPnL = positionsDayPnL + holdingsDayPnL;
+
+    return {
+        // External Flows
+        grossDeposited: grossDep,
+        grossWithdrawn: grossWith,
+        netExternalCapital,
+
+        // Balances & Values
+        availableCash,
+        marginBlocked: totalMarginBlocked,
+        cncCostBasis,
+        cncMarketValue,
+        cncUnrealizedPnL,
+        cncDayPnL: holdingsDayPnL,
+        holdingsDayPnL,
+
+        // MIS Metrics
+        misRealizedPnL,
+        misUnrealizedPnL,
+        positionsDayPnL,
+
+        // High-Level Syntheses
+        equity,
+        cumulativePnL,
+        lifetimeReturnPct,
+        unifiedDayPnL: totalDayPnL,
+        totalDayPnL,
+        isProfit: cumulativePnL >= 0,
+        isDayProfit: totalDayPnL >= 0,
+        isPositionsDayProfit: positionsDayPnL >= 0,
+    };
+};
+
+// Legacy Adapters for Backward Compatibility
 export const calculatePortfolioMetrics = (allHoldings = [], availableCash = 100000) => {
     let totalInvestment = 0;
     let totalCurrentValue = 0;
@@ -8,11 +118,10 @@ export const calculatePortfolioMetrics = (allHoldings = [], availableCash = 1000
     });
 
     const totalPnL = totalCurrentValue - totalInvestment;
-    const pnlPercentage = totalInvestment > 0 ? (totalPnL / totalInvestment * 100).toFixed(2) : "0.00";
+    const pnlPercentage = totalInvestment > 0 ? ((totalPnL / totalInvestment) * 100).toFixed(2) : "0.00";
 
-    const usedMargin = totalInvestment;
+    const cncCostBasis = totalInvestment;
     const availableMargin = Number(availableCash) || 0;
-    const openingBalance = availableMargin + usedMargin;
 
     return {
         totalInvestment,
@@ -22,41 +131,22 @@ export const calculatePortfolioMetrics = (allHoldings = [], availableCash = 1000
         isProfit: totalPnL >= 0,
         isOverallProfit: totalPnL >= 0,
         isoverallProfit: totalPnL >= 0,
-        openingBalance,
-        OpeningBalance: openingBalance,
-        usedMargin,
-        marginsUsed: usedMargin,
+        cncCostBasis,
+        usedMargin: 0, // CNC does not use leverage margin
+        marginsUsed: 0,
         availableMargin,
         marginAvailable: availableMargin,
-    }
-}
-export const formatK = (val) => {
-    if (val === undefined || val === null || isNaN(val)) return "0.00";
-    const absVal = Math.abs(val);
-    if (absVal >= 1000) {
-        return (val / 1000).toFixed(2) + "k";
-    }
-    return Number(val).toFixed(2);
-}
-
+    };
+};
 
 export const calculateIntradayPositionMetrics = (stock) => {
-    const net = stock.netQty !== undefined ? stock.netQty : (stock.qty || 0);
+    const net = stock.netQty !== undefined ? Number(stock.netQty) : (Number(stock.qty) || 0);
     const realized = Number(stock.realizedPnL || 0);
     const ltp = Number(stock.price) || 0;
-    const avg = Number(stock.avg) || 0;
+    const avg = Number(stock.avgEntry ?? stock.avg ?? 0);
 
-    let unrealized = 0;
-    if (net > 0) {
-        // Long Position: (LTP - Buy Avg) * Net Qty
-        const buyAvg = Number(stock.buyAvg) || avg;
-        unrealized = (ltp - buyAvg) * net;
-    } else if (net < 0) {
-        // Short Position: (Sell Avg - LTP) * Abs(Net Qty)
-        const sellAvg = Number(stock.sellAvg) || avg;
-        unrealized = (sellAvg - ltp) * Math.abs(net);
-    }
-
+    // Signed branch-free unrealized P&L
+    const unrealized = (ltp - avg) * net;
     const totalPnL = realized + unrealized;
 
     return {
@@ -78,7 +168,6 @@ export const calculateTotalIntradayMetrics = (positions = []) => {
         const metrics = calculateIntradayPositionMetrics(stock);
         totalRealized += metrics.realized;
         totalUnrealized += metrics.unrealized;
-
     });
 
     return {
@@ -86,4 +175,13 @@ export const calculateTotalIntradayMetrics = (positions = []) => {
         totalUnrealized,
         totalDayPnL: totalRealized + totalUnrealized,
     };
+};
+
+export const formatK = (val) => {
+    if (val === undefined || val === null || isNaN(val)) return "0.00";
+    const absVal = Math.abs(val);
+    if (absVal >= 1000) {
+        return (val / 1000).toFixed(2) + "k";
+    }
+    return Number(val).toFixed(2);
 };

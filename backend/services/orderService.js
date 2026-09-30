@@ -5,7 +5,7 @@ const Positions = require("../model/PositionsModel");
 const User = require("../model/UserModel");
 const ExpressError = require("../utils/ExpressError");
 
-const round2 = (value) => Number(value.toFixed(2));
+const round2 = (value) => Number(Number(value).toFixed(2));
 
 // WALLET HELPERS
 async function debitCash(userId, amount, session) {
@@ -28,13 +28,14 @@ async function creditCash(userId, amount, session) {
     return User.findByIdAndUpdate(
         userId,
         { $inc: { "funds.availableCash": amount } },
-        { session }
+        { returnDocument: "after", session }
     );
 }
 
 // CNC LOGIC
 async function executeCncOrder({ userId, name, orderQty, orderPrice, mode, session }) {
     const holding = await Holdings.findOne({ name, user: userId }).session(session);
+    let cncRealized = 0;
 
     // ---------------- BUY ----------------
     if (mode === "BUY") {
@@ -51,7 +52,6 @@ async function executeCncOrder({ userId, name, orderQty, orderPrice, mode, sessi
             holding.price = orderPrice;
 
             await holding.save({ session });
-
         } else {
             const newHolding = new Holdings({
                 name,
@@ -65,7 +65,7 @@ async function executeCncOrder({ userId, name, orderQty, orderPrice, mode, sessi
             });
             await newHolding.save({ session });
         }
-        return;
+        return { realizedPnL: 0 };
     }
 
     // ---------------- SELL ----------------
@@ -73,15 +73,23 @@ async function executeCncOrder({ userId, name, orderQty, orderPrice, mode, sessi
         if (!holding || holding.qty < orderQty) {
             throw new ExpressError(
                 400,
-                `Insufficient holdings! You only own ${
-                    holding ? holding.qty : 0
-                } shares of ${name}.`
+                `Insufficient holdings! You only own ${holding ? holding.qty : 0} shares of ${name}.`
             );
         }
 
         const sellProceeds = round2(orderQty * orderPrice);
+        cncRealized = round2((orderPrice - holding.avg) * orderQty);
 
         await creditCash(userId, sellProceeds, session);
+
+        // Record CNC Realized P&L in User Ledger
+        if (cncRealized !== 0) {
+            await User.findByIdAndUpdate(
+                userId,
+                { $inc: { "funds.lifetimeRealizedPnL": cncRealized } },
+                { session }
+            );
+        }
 
         if (holding.qty === orderQty) {
             await Holdings.deleteOne({ _id: holding._id }, { session });
@@ -90,156 +98,146 @@ async function executeCncOrder({ userId, name, orderQty, orderPrice, mode, sessi
             holding.price = orderPrice;
             await holding.save({ session });
         }
+        return { realizedPnL: cncRealized };
     }
 }
 
-// MIS HELPERS
-function resetClosedPosition(position) {
-    position.realizedPnL = 0;
-    position.buyQty = 0;
-    position.sellQty = 0;
-    position.buyAvg = 0;
-    position.sellAvg = 0;
-}
+// 6-STATE MIS SETTLEMENT MATRIX
+function applyFill(pos, side, orderQty, orderPrice) {
+    const q = pos.netQty !== undefined ? pos.netQty : (pos.qty || 0);
+    const avg = pos.avgEntry || pos.avg || 0;
+    const p = orderPrice;
+    let realizedDelta = 0;
+    let newQty = q;
+    let newAvg = avg;
 
-async function createMisPosition({ userId, name, orderQty, orderPrice, mode, session
-}) {
-    const isBuy = mode === "BUY";
-
-    const position = new Positions({
-        name,
-        product: "MIS",
-        user: userId,
-
-        qty: isBuy ? orderQty : -orderQty,
-        netQty: isBuy ? orderQty : -orderQty,
-
-        buyQty: isBuy ? orderQty : 0,
-        buyAvg: isBuy ? orderPrice : 0,
-
-        sellQty: isBuy ? 0 : orderQty,
-        sellAvg: isBuy ? 0 : orderPrice,
-
-        avg: orderPrice,
-        price: orderPrice,
-
-        realizedPnL: 0,
-        net: "+0.00%",
-        day: "+0.00%",
-        isLoss: false
-    });
-    await position.save({ session });
-}
-
-function updateMisPosition(position, mode, orderQty, orderPrice) {
-    const prevNetQty = position.netQty !== undefined ? position.netQty : position.qty;
-
-    let realizedDiff = 0;
-
-    // ---------------- BUY ----------------
-    if (mode === "BUY") {
-        if (prevNetQty < 0) {
-            const shortCoverQty = Math.min(orderQty, Math.abs(prevNetQty));
-            realizedDiff += (position.sellAvg - orderPrice) * shortCoverQty;
+    if (side === "BUY") {
+        if (q >= 0) {
+            // Case 1: BUY into Long (Accumulate)
+            newAvg = ((q * avg) + (orderQty * p)) / (q + orderQty);
+            newQty = q + orderQty;
+            realizedDelta = 0;
+        } else if (q < 0 && orderQty <= Math.abs(q)) {
+            // Case 2: BUY into Short (Reduce/Cover)
+            realizedDelta = (avg - p) * orderQty;
+            newQty = q + orderQty;
+            newAvg = newQty === 0 ? 0 : avg; // avg unchanged on partial close
+        } else if (q < 0 && orderQty > Math.abs(q)) {
+            // Case 3: BUY into Short (Flip from Short to Long)
+            const coverQty = Math.abs(q);
+            realizedDelta = (avg - p) * coverQty;
+            newQty = orderQty - coverQty;
+            newAvg = p; // New basis established at fill price
         }
-
-        const previousBuyTotal = (position.buyQty || 0) * (position.buyAvg || 0);
-        const newBuyTotal = previousBuyTotal + (orderQty * orderPrice);
-        const newBuyQty = (position.buyQty || 0) + orderQty;
-
-        position.buyQty = newBuyQty;
-        position.buyAvg = round2(newBuyTotal / newBuyQty);
-    }
-
-    // ---------------- SELL ----------------
-    if (mode === "SELL") {
-        if (prevNetQty > 0) {
-            const longExitQty = Math.min(orderQty, prevNetQty);
-            realizedDiff += (orderPrice - position.buyAvg) * longExitQty;
+    } else if (side === "SELL") {
+        if (q > 0 && orderQty <= q) {
+            // Case 4: SELL into Long (Reduce/Exit)
+            realizedDelta = (p - avg) * orderQty;
+            newQty = q - orderQty;
+            newAvg = newQty === 0 ? 0 : avg; // avg unchanged on partial close
+        } else if (q > 0 && orderQty > q) {
+            // Case 5: SELL into Long (Flip from Long to Short)
+            const exitQty = q;
+            realizedDelta = (p - avg) * exitQty;
+            newQty = -(orderQty - exitQty);
+            newAvg = p; // New basis established at fill price
+        } else if (q <= 0) {
+            // Case 6: SELL into Short (Accumulate Short)
+            const absQ = Math.abs(q);
+            newAvg = ((absQ * avg) + (orderQty * p)) / (absQ + orderQty);
+            newQty = q - orderQty;
+            realizedDelta = 0;
         }
-
-        const previousSellTotal = (position.sellQty || 0) * (position.sellAvg || 0);
-        const newSellTotal = previousSellTotal + (orderQty * orderPrice);
-        const newSellQty = (position.sellQty || 0) + orderQty;
-
-        position.sellQty = newSellQty;
-        position.sellAvg = round2(newSellTotal / newSellQty);
     }
 
-    // ---------------- P&L ----------------
-    realizedDiff = round2(realizedDiff);
-    position.realizedPnL = round2((position.realizedPnL || 0) + realizedDiff);
+    realizedDelta = round2(realizedDelta);
+    newAvg = round2(newAvg);
 
-    // ---------------- NET POSITION ----------------
-    const newNetQty = position.buyQty - position.sellQty;
+    // Margin Blocked for MIS (5x Leverage: 20% margin)
+    const marginBlocked = round2((Math.abs(newQty) * newAvg) / 5);
 
-    position.netQty = newNetQty;
-    position.qty = newNetQty;
+    // Apply updates to position document
+    pos.netQty = newQty;
+    pos.qty = newQty;
+    pos.avgEntry = newAvg;
+    pos.avg = newAvg;
+    pos.price = p;
+    pos.marginBlocked = marginBlocked;
+    pos.realizedPnL = round2((pos.realizedPnL || 0) + realizedDelta);
 
-    if (newNetQty > 0) {
-        position.avg = position.buyAvg;
-    } else if (newNetQty < 0) {
-        position.avg = position.sellAvg;
+    // Legacy sync
+    if (newQty > 0) {
+        pos.buyQty = newQty;
+        pos.buyAvg = newAvg;
+        pos.sellQty = 0;
+        pos.sellAvg = 0;
+    } else if (newQty < 0) {
+        pos.sellQty = Math.abs(newQty);
+        pos.sellAvg = newAvg;
+        pos.buyQty = 0;
+        pos.buyAvg = 0;
     } else {
-        position.avg = position.buyAvg || position.sellAvg || orderPrice;
+        pos.buyQty = 0;
+        pos.sellQty = 0;
     }
 
-    position.price = orderPrice;
-    return realizedDiff;
+    return { realizedDelta, newQty, newAvg, marginBlocked };
 }
 
-// MIS Logic
-async function executeMisOrder({userId, name, orderQty, orderPrice, mode, session
-}) {
+// MIS ORDER LOGIC
+async function executeMisOrder({ userId, name, orderQty, orderPrice, mode, session }) {
     let position = await Positions.findOne({
         name,
         user: userId,
         product: "MIS"
     }).session(session);
 
-
-    // Closed position → start fresh
-    if (
-        position &&
-        (position.netQty === 0 || position.qty === 0)
-    ) {
-        resetClosedPosition(position);
-    }
-
-
-    // First MIS order
     if (!position) {
-        await createMisPosition({ userId, name, orderQty, orderPrice, mode, session });
-        return;
+        position = new Positions({
+            name,
+            product: "MIS",
+            user: userId,
+            netQty: 0,
+            qty: 0,
+            avgEntry: 0,
+            avg: 0,
+            price: orderPrice,
+            realizedPnL: 0,
+            marginBlocked: 0,
+            net: "+0.00%",
+            day: "+0.00%",
+            isLoss: false
+        });
     }
 
-
-    // Existing position
-    const realizedDiff = updateMisPosition(position, mode, orderQty, orderPrice);
-
+    // Apply fill using 6-state matrix
+    const { realizedDelta } = applyFill(position, mode, orderQty, orderPrice);
 
     // Settle realized P&L into wallet
-    if (realizedDiff !== 0) {
-        await creditCash(userId, realizedDiff, session);
+    if (realizedDelta !== 0) {
+        await creditCash(userId, realizedDelta, session);
+        await User.findByIdAndUpdate(
+            userId,
+            { $inc: { "funds.lifetimeRealizedPnL": realizedDelta } },
+            { session }
+        );
     }
 
-
     await position.save({ session });
+    return { realizedPnL: realizedDelta };
 }
 
 // MAIN ORDER SERVICE
-async function executeOrder({userId, name, qty, price, mode, product = "CNC"
-}) {
+async function executeOrder({ userId, name, qty, price, mode, product = "CNC" }) {
     const orderQty = Number(qty);
     const orderPrice = Number(price);
 
     const session = await mongoose.startSession();
-
     let executedOrder = null;
+    let executionSettlement = { realizedPnL: 0 };
 
     try {
         await session.withTransaction(async () => {
-
             // 1. Save audit/order record
             executedOrder = await Orders.create(
                 [{
@@ -255,9 +253,9 @@ async function executeOrder({userId, name, qty, price, mode, product = "CNC"
 
             // 2. Execute according to product
             if (product === "CNC") {
-                await executeCncOrder({ userId, name, orderQty, orderPrice, mode, session });
+                executionSettlement = await executeCncOrder({ userId, name, orderQty, orderPrice, mode, session });
             } else {
-                await executeMisOrder({ userId, name, orderQty, orderPrice, mode, session });
+                executionSettlement = await executeMisOrder({ userId, name, orderQty, orderPrice, mode, session });
             }
         });
 
@@ -265,10 +263,20 @@ async function executeOrder({userId, name, qty, price, mode, product = "CNC"
         await session.endSession();
     }
 
-    return executedOrder;
+    // Retrieve fresh funds snapshot for response
+    const freshUser = await User.findById(userId).lean();
+
+    return {
+        executedOrder,
+        settlement: {
+            realizedPnL: executionSettlement?.realizedPnL || 0,
+            availableCash: freshUser?.funds?.availableCash || 0,
+            lifetimeRealizedPnL: freshUser?.funds?.lifetimeRealizedPnL || 0
+        }
+    };
 }
 
-
 module.exports = {
-    executeOrder
+    executeOrder,
+    applyFill
 };

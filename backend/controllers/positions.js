@@ -1,6 +1,7 @@
 const Positions = require("../model/PositionsModel");
 const Orders = require("../model/OrdersModel");
 const User = require("../model/UserModel");
+const { getCurrentStockPrice } = require("./market");
 
 module.exports.getAllPositions = async (req, res) => {
     //1. get Start-of-day IST timestamp for today
@@ -23,98 +24,72 @@ module.exports.getAllPositions = async (req, res) => {
     res.status(200).json(allPositions);
 };
 
+const orderService = require("../services/orderService");
+
 // RMS Auto Square-off Engine (03:20 PM Liquidation)
 const executeGlobalAutoSquareOff = async (sqecificUserId = null) => {
-    //1. Search Open MIS positions of Logged-in user or specific user
+    // 1. Search Open MIS positions
     const query = {
         product: "MIS",
         $or: [
-            {
-                netQty: { $ne: 0 }
-            },
-            {
-                qty: { $ne: 0 }
-            }
+            { netQty: { $ne: 0 } },
+            { qty: { $ne: 0 } }
         ]
-    }
+    };
     if (sqecificUserId) query.user = sqecificUserId;
 
     const openPositions = await Positions.find(query);
 
     if (!openPositions || openPositions.length === 0) {
         return {
-            squaredOffCount: 0, totalSettledAmount: 0, orders: []
+            squaredOffCount: 0,
+            totalSettledAmount: 0,
+            orders: []
         };
     }
 
     let totalSettledAmount = 0;
     const executedOrders = [];
 
-    //2. Liquidate each open position
+    // 2. Liquidate each open position via centralized Order Service
     for (const pos of openPositions) {
         const net = pos.netQty !== undefined && pos.netQty !== 0 ? pos.netQty : pos.qty;
-
         if (net === 0) continue;
 
-        // Determine buy/sell
         const exitMode = net > 0 ? "SELL" : "BUY";
-
         const exitQty = Math.abs(net);
-        const exitPrice = pos.price || pos.avg || 100;
+        let exitPrice = pos.price || pos.avgEntry || pos.avg || 100;
 
-        // Realized P&L calc
-        let realizedDiff = 0;
-        if (exitMode === "SELL") {
-            realizedDiff = (exitPrice - (pos.buyAvg || pos.avg)) * exitQty;
-        } else {
-            realizedDiff = ((pos.sellAvg || pos.avg) - exitPrice) * exitQty;
+        try {
+            const liveCmp = await getCurrentStockPrice(pos.name);
+            if (typeof liveCmp === "number" && !isNaN(liveCmp) && liveCmp > 0) {
+                exitPrice = liveCmp;
+            }
+        } catch (err) {
+            console.warn(`[RMS] Live CMP fetch failed for ${pos.name}. Using backup price: ${exitPrice}`);
         }
 
-        realizedDiff = Number(realizedDiff.toFixed(2));
-        totalSettledAmount += realizedDiff;
-
-        // Audit trail entry
-        const autoOrder = new Orders({
+        // Delegate to single authoritative execution engine
+        const { executedOrder, settlement } = await orderService.executeOrder({
+            userId: pos.user,
             name: pos.name,
             qty: exitQty,
             price: exitPrice,
             mode: exitMode,
-            product: "MIS", // MIS Position closed
-            user: pos.user,
+            product: "MIS"
         });
 
-        await autoOrder.save();
-        executedOrders.push(autoOrder);
-
-        // Update position ledger 
-        pos.realizedPnL = Number(((pos.realizedPnL || 0) + realizedDiff).toFixed(2));
-        if (exitMode === "SELL") {
-            pos.sellQty = (pos.sellQty || 0) + exitQty;
-            pos.sellAvg = exitPrice;
-        } else {
-            pos.buyQty = (pos.buyQty || 0) + exitQty;
-            pos.buyAvg = exitPrice;
+        if (settlement?.realizedPnL) {
+            totalSettledAmount += settlement.realizedPnL;
         }
-        pos.netQty = 0;
-        pos.qty = 0;
-        pos.price = exitPrice;
-        await pos.save();
-
-        // 3. Update User Margin 
-        if (realizedDiff != 0) {
-            await User.findByIdAndUpdate(pos.user, {
-                $inc: {
-                    "funds.availableCash": Number(realizedDiff.toFixed(2))
-                }
-            });
+        if (executedOrder) {
+            executedOrders.push(executedOrder);
         }
-
     }
-
 
     return {
         squaredOffCount: executedOrders.length,
-        totalSettledAmount,
+        totalSettledAmount: Number(totalSettledAmount.toFixed(2)),
         orders: executedOrders
     };
 };

@@ -8,7 +8,7 @@ module.exports.getAllOrders = async (req, res) => {
 };
 
 module.exports.createOrder = async (req, res) => {
-    const executedOrder = await orderService.executeOrder({
+    const { executedOrder, settlement } = await orderService.executeOrder({
         userId: req.user.id,
         ...req.body
     });
@@ -16,6 +16,7 @@ module.exports.createOrder = async (req, res) => {
     res.status(200).json({
         success: true,
         message: `${req.body.mode} order executed & holdings updated successfully!`,
-        order: executedOrder
+        order: executedOrder,
+        settlement
     });
 };

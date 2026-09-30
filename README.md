@@ -11,19 +11,18 @@
 
 ---
 
-## 📑 Table of Contents
-- [System Architecture](#-system-architecture)
-- [Repository Structure](#-repository-structure)
-- [Financial Ledger & Core Specifications](#-financial-ledger--core-specifications)
-- [Security & Reliability Engineering](#-security--reliability-engineering)
-- [API Contract & Specifications](#-api-contract--specifications)
-- [Local Development & Quickstart](#-local-development--quickstart)
-- [Environment Variables](#-environment-variables)
-- [License](#-license)
+## Table of Contents
+- [System Architecture](#system-architecture)
+- [Repository Structure](#repository-structure)
+- [Financial Ledger & Core Specifications](#financial-ledger--core-specifications)
+- [Security & Reliability Engineering](#security--reliability-engineering)
+- [API Contract & Specifications](#api-contract--specifications)
+- [Local Development & Quickstart](#local-development--quickstart)
+- [License](#license)
 
 ---
 
-## 🏛️ System Architecture
+## System Architecture
 
 ```
 [ Client Applications ]
@@ -64,7 +63,7 @@
 
 ---
 
-## 📁 Repository Structure
+## Repository Structure
 
 ```
 .
@@ -84,7 +83,7 @@
 
 ---
 
-## ⚡ Financial Ledger & Core Specifications
+## Financial Ledger & Core Specifications
 
 ### 1. Multi-Document ACID Transactions
 In high-frequency financial applications, partial state persistence causes severe ledger drift. Order execution in `backend/services/orderService.js` runs strictly within a **MongoDB ACID Session Transaction**:
@@ -119,7 +118,7 @@ if (!user) throw new ExpressError(400, "Insufficient funds!");
 * **Margin Intraday Square-Off (MIS):** Same-day leveraged trading:
   - **Short Selling:** Selling shares without prior ownership (`netQty < 0`).
   - **Short Covering:** Repurchasing shorted inventory with real-time settlement:
-    $$\text{Realized P\&L} = (\text{Sell Average} - \text{Cover Price}) \times \text{Cover Qty}$$
+    $$\text{Realized PnL} = (\text{Sell Average} - \text{Cover Price}) \times \text{Cover Qty}$$
 
 ### 4. Autonomous 03:20 PM RMS Liquidation Daemon
 - Brokerage regulations mandate intraday MIS positions cannot carry overnight.
@@ -137,7 +136,7 @@ if (!user) throw new ExpressError(400, "Insufficient funds!");
 
 ---
 
-## 🛡️ Security & Reliability Engineering
+## Security & Reliability Engineering
 
 ### 1. Order Idempotency Guard (`X-Idempotency-Key`)
 - Prevents double-spending resulting from network latency, retry loops, or aggressive button clicks.
@@ -165,7 +164,7 @@ if (!user) throw new ExpressError(400, "Insufficient funds!");
 
 ---
 
-## 📊 API Contract & Specifications
+## API Contract & Specifications
 
 | Method | Endpoint | Description | Auth / Security |
 |---|---|---|---|
@@ -182,7 +181,7 @@ if (!user) throw new ExpressError(400, "Insufficient funds!");
 
 ---
 
-## 🚀 Local Development & Quickstart
+## Local Development & Quickstart
 
 ### Prerequisites
 - [Node.js](https://nodejs.org/) (v18.0.0 or higher)
@@ -235,5 +234,5 @@ npm run dev
 
 ---
 
-## 📄 License
+## License
 This project is licensed under the [MIT License](LICENSE).

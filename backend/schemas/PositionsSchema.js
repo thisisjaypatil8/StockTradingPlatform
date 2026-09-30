@@ -38,6 +38,14 @@ const PositionsSchema = new Schema({
         type: Number,
         default: 0,
     },
+    avgEntry: {
+        type: Number,
+        default: 0,
+    },
+    marginBlocked: {
+        type: Number,
+        default: 0,
+    },
     price: {
         type: Number,
         default: 0,
