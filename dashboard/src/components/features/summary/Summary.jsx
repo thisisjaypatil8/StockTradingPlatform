@@ -1,4 +1,4 @@
-import { calculateAccountMetrics, formatK } from "../../../utils/portfolioMath";
+import { calculateAccountMetrics, formatK, formatCurrency, formatPnL } from "../../../utils/portfolioMath";
 import { usePortfolio } from "../../../context/PortfolioContext";
 import { usePositions } from "../positions/usePositions";
 import styles from "./Summary.module.css";
@@ -73,7 +73,7 @@ export default function Summary() {
           <div className={styles.lifetimeCol}>
             <span className={styles.lifetimeLabel}>Account Equity</span>
             <h4 className={styles.lifetimeValue}>
-              ₹{equity.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {formatCurrency(equity)}
             </h4>
           </div>
 
@@ -81,7 +81,7 @@ export default function Summary() {
           <div className={styles.lifetimeCol}>
             <span className={styles.lifetimeLabel}>Net External Capital</span>
             <h4 className={styles.lifetimeValue}>
-              ₹{netExternalCapital.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {formatCurrency(netExternalCapital)}
             </h4>
           </div>
 
@@ -89,9 +89,7 @@ export default function Summary() {
           <div className={styles.lifetimeCol}>
             <span className={styles.lifetimeLabel}>Cumulative P&L</span>
             <h4 className={isProfit ? styles.profit : styles.loss}>
-              {isProfit
-                ? `+₹${cumulativePnL.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                : `-₹${Math.abs(cumulativePnL).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              {formatPnL(cumulativePnL, { isPositiveColor: true })}
               <span className={isProfit ? styles.profitBadge : styles.lossBadge}>
                 {isProfit ? `+${lifetimeReturnPct.toFixed(2)}%` : `${lifetimeReturnPct.toFixed(2)}%`}
               </span>

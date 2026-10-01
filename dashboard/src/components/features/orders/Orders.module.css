@@ -138,16 +138,39 @@
 }
 
 /* Mobile Responsiveness */
+/* Mobile Responsiveness */
 @media (max-width: 768px) {
   .orderTable {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    border-radius: 6px;
   }
 
   .orderTable table {
-    min-width: 550px;
+    min-width: 100%;
+    width: 100%;
+  }
+
+  .orderTable th,
+  .orderTable td {
+    padding: 9px 6px;
+    font-size: 0.78rem;
+  }
+
+  .instrumentName {
+    font-size: 0.8rem;
+  }
+
+  .modeBadge {
+    padding: 2px 6px;
+    font-size: 0.68rem;
+  }
+
+  .statusComplete {
+    font-size: 0.7rem;
   }
 }
+
 
 /* Filter Tabs */
 .filterContainer {

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import API from "../../../api";
 import { calculateTotalIntradayMetrics } from "../../../utils/portfolioMath";
+import { fetchBatchQuotes } from "../../../utils/marketQuotes";
 
 export const usePositions = () => {
   const [allPositions, setAllPositions] = useState([]);
@@ -18,14 +19,7 @@ export const usePositions = () => {
       if (positionsData.length === 0) return;
 
       // Single batched quotes fetch (eliminates N+1 waterfall)
-      const symbols = positionsData.map((s) => s.name).join(",");
-      let quoteMap = {};
-      try {
-        const qRes = await API.get(`/market/quotes?symbols=${symbols}`);
-        quoteMap = qRes.data || {};
-      } catch (qErr) {
-        console.warn("Positions batch quote fetch failed:", qErr);
-      }
+      const quoteMap = await fetchBatchQuotes(positionsData);
 
       if (!isMountedRef.current) return;
 

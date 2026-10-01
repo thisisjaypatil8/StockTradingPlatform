@@ -1,6 +1,7 @@
 const { Schema } = require("mongoose");
 
 const PositionsSchema = new Schema({
+    // Position identity
     product: {
         type: String,
         default: "MIS",
@@ -9,6 +10,13 @@ const PositionsSchema = new Schema({
         type: String,
         required:true,
     },
+    user: {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
+    },
+
+    // quantity
     qty: {
         type:Number,
         default: 0,
@@ -21,11 +29,13 @@ const PositionsSchema = new Schema({
         type: Number,
         default:0,
     },
-    buyAvg:{
+    sellQty:{
         type: Number,
         default:0,
     },
-    sellQty:{
+
+    // avgs
+    buyAvg:{
         type: Number,
         default:0,
     },
@@ -33,7 +43,6 @@ const PositionsSchema = new Schema({
         type: Number,
         default:0,
     },
-
     avg: {
         type: Number,
         default: 0,
@@ -42,6 +51,8 @@ const PositionsSchema = new Schema({
         type: Number,
         default: 0,
     },
+
+    // Capital and Market data
     marginBlocked: {
         type: Number,
         default: 0,
@@ -66,11 +77,7 @@ const PositionsSchema = new Schema({
         type: Boolean,
         default: false,
     },
-    user: {
-        type: Schema.Types.ObjectId,
-        ref: "User",
-        required: true,
-    },
+    
 }, {timestamps: true}
 );
 

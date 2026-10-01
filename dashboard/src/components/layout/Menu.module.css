@@ -150,6 +150,32 @@
   background: #ffccc7;
 }
 
+.dropdownNavLinks {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 8px;
+}
+
+.dropdownLink {
+  color: #333;
+  text-decoration: none;
+  font-size: 0.85rem;
+  padding: 6px 8px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dropdownLink:hover {
+  background: #f7f9fa;
+  color: #ff5722;
+}
+
 /* Desktop Grid Alignment */
 @media (min-width: 769px) {
   .menuContainer {
@@ -166,27 +192,37 @@
     padding: 6px 0;
     overflow: visible;
     gap: 8px;
+    box-sizing: border-box;
   }
 
   .menuContainer > img,
   .logo {
-    width: 32px;
+    width: 30px;
+    height: auto;
     flex-shrink: 0;
+    display: block;
+    cursor: pointer;
   }
 
   .menus {
     flex: 1;
     min-width: 0;
+    display: flex;
+    align-items: center;
     justify-content: space-between;
   }
 
   .menus ul {
     flex: 1;
     min-width: 0;
+    display: flex;
+    align-items: center;
     overflow-x: auto;
     white-space: nowrap;
     -webkit-overflow-scrolling: touch;
-    padding: 0 4px;
+    padding: 0 10px 0 4px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
 
   .menus ul::-webkit-scrollbar {
@@ -194,12 +230,17 @@
   }
 
   .menus li {
-    margin-right: 12px;
+    margin-right: 14px;
     flex-shrink: 0;
+    display: inline-block;
+  }
+
+  .menus li:last-child {
+    margin-right: 4px;
   }
 
   .menus li a {
-    font-size: 0.78rem;
+    font-size: 0.8rem;
     white-space: nowrap;
   }
 
@@ -207,9 +248,21 @@
     display: none;
   }
 
+  .profileWrapper {
+    flex-shrink: 0;
+    position: relative;
+  }
+
   .profile {
     margin-left: 6px;
     flex-shrink: 0;
+  }
+
+  .avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 0.82rem;
+    margin-right: 0;
   }
 
   .username {

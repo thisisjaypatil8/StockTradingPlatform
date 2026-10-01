@@ -1,6 +1,5 @@
 import { Route, Routes } from "react-router-dom";
 import { useState } from "react";
-
 import Apps from "../features/apps/Apps.jsx";
 import Funds from "../features/funds/Funds.jsx";
 import Holdings from "../features/holdings/Holdings.jsx";

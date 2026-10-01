@@ -1,6 +1,7 @@
 const rateLimit = require("express-rate-limit");
 const jwt = require("jsonwebtoken");
 const ExpressError = require("./utils/ExpressError");
+const { getISTDate } = require("./utils/time");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -40,11 +41,7 @@ module.exports.checkMarketHours = (req, res, next) => {
     }
 
     //3. Indian Standard Time (IST) 
-    const now = new Date();
-    const isString = now.toLocaleString("en-US", {
-        timeZone: "Asia/Kolkata"
-    });
-    const istDate = new Date(isString);
+    const istDate = getISTDate();
     const day = istDate.getDay();
     const hours = istDate.getHours();
     const minutes = istDate.getMinutes();

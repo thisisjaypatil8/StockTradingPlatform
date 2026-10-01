@@ -1,23 +1,92 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import styles from "./WatchList.module.css";
-import { watchlist } from "../../../data/data";
+import { watchlist as defaultWatchlist } from "../../../data/data";
 import { DoughnutChart } from "../../shared/charts/DoughnutChart";
 import WatchListItem from "./WatchListItem";
+import API from "../../../api";
 
 export default function WatchList() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
 
-  const filteredWatchlist = watchlist.filter((stock) =>
+  // Initialize from LocalStorage or fallback to default data
+  const [userWatchlist, setUserWatchlist] = useState(() => {
+    try {
+      const saved = localStorage.getItem("userWatchlist");
+      return saved ? JSON.parse(saved) : defaultWatchlist;
+    } catch {
+      return defaultWatchlist;
+    }
+  });
+
+  // Debounced Live Symbol Search (300ms)
+  useEffect(() => {
+    const trimmed = searchTerm.trim();
+    if (trimmed.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        setIsSearching(true);
+        const res = await API.get(`/market/search?q=${encodeURIComponent(trimmed)}`);
+        setSearchResults(res.data || []);
+      } catch (err) {
+        console.warn("Live search error:", err);
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Add stock to Watchlist
+  const handleAddStock = (item) => {
+    const alreadyExists = userWatchlist.some(
+      (s) => s.name.toUpperCase() === item.name.toUpperCase()
+    );
+    if (alreadyExists) return;
+
+    const newStock = {
+      name: item.name.toUpperCase(),
+      price: 0,
+      percent: "+0.00%",
+      isDown: false,
+    };
+
+    const updated = [newStock, ...userWatchlist];
+    setUserWatchlist(updated);
+    localStorage.setItem("userWatchlist", JSON.stringify(updated));
+    setSearchTerm("");
+    setSearchResults([]);
+  };
+
+    // Remove stock from Watchlist
+  const handleRemoveStock = (stockName) => {
+    const updated = userWatchlist.filter(
+      (s) => s.name.toUpperCase() !== stockName.toUpperCase()
+    );
+    setUserWatchlist(updated);
+    localStorage.setItem("userWatchlist", JSON.stringify(updated));
+  };
+
+
+  // Filter local watchlist
+  const filteredWatchlist = userWatchlist.filter((stock) =>
     stock.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const labels = watchlist.map((stock) => stock.name);
+  const labels = userWatchlist.map((stock) => stock.name);
   const data = {
     labels,
     datasets: [
       {
         label: "Price",
-        data: watchlist.map((stock) => stock.price),
+        data: userWatchlist.map((stock) => stock.price || 100),
         backgroundColor: [
           "rgba(255, 99, 132, 0.5)",
           "rgba(54, 162, 235, 0.5)",
@@ -46,19 +115,53 @@ export default function WatchList() {
           type="text"
           name="search"
           id="search"
-          placeholder="Search eg: INFY, RELIANCE, TCS..."
+          placeholder="Search eg: INFY, TATA, ITC, ZOMATO..."
           className={styles.search}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
+          autoComplete="off"
         />
         <span className={styles.counts}>
-          {filteredWatchlist.length} / {watchlist.length}
+          {filteredWatchlist.length} / {userWatchlist.length}
         </span>
+
+        {/* Live Search Dropdown */}
+        {searchResults.length > 0 && (
+          <div className={styles.searchDropdown}>
+            {searchResults.map((item) => {
+              const isAdded = userWatchlist.some(
+                (s) => s.name.toUpperCase() === item.name.toUpperCase()
+              );
+              return (
+                <div key={item.symbol} className={styles.searchItem}>
+                  <div className={styles.searchInfo}>
+                    <div className={styles.searchHeader}>
+                      <span className={styles.searchTicker}>{item.name}</span>
+                      <span className={styles.exchangeBadge}>{item.exchange}</span>
+                    </div>
+                    <span className={styles.companyName}>{item.shortname}</span>
+                  </div>
+                  {isAdded ? (
+                    <span className={styles.addedBadge}>✓ Added</span>
+                  ) : (
+                    <button
+                      type="button"
+                      className={styles.addBtn}
+                      onClick={() => handleAddStock(item)}
+                    >
+                      + Add
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <ul className={styles.list}>
         {filteredWatchlist.map((stock) => (
-          <WatchListItem key={stock.name} stock={stock} />
+          <WatchListItem key={stock.name} stock={stock} onRemove={handleRemoveStock} />
         ))}
       </ul>
 

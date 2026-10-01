@@ -109,19 +109,43 @@
   margin: 10px 0;
 }
 
-.commodity {
-  border: 1px dashed #d1d5db;
-  border-radius: 4px;
-  padding: 48px 24px;
-  text-align: center;
-  background: #fafafa;
+.val {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #222;
+  margin: 0;
 }
 
-.commodity p {
-  color: #888;
-  font-size: 0.95rem;
-  margin: 0 0 16px 0;
+.profit {
+  color: #2e7d32 !important;
+  font-weight: 600;
 }
+
+.loss {
+  color: #d32f2f !important;
+  font-weight: 600;
+}
+
+.badgeActive {
+  background: #e8f5e9;
+  color: #2e7d32;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.badgeInfo {
+  background: #f1f3f5;
+  color: #475569;
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
 
 /* Mobile Responsiveness */
 @media (max-width: 768px) {

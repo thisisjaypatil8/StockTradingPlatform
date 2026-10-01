@@ -126,6 +126,7 @@ code {
     padding: 16px 12px;
     height: auto;
     overflow-y: visible;
+    box-sizing: border-box;
   }
 
   .hide-mobile {

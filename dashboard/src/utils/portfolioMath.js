@@ -62,7 +62,7 @@ export const calculateAccountMetrics = ({
 
     // 3. Account Equity (Net Liquidation Value)
     // Cash already holds realized profits/losses; unrealized is floating
-    const equity = availableCash + totalMarginBlocked + cncMarketValue + misUnrealizedPnL;
+    const equity = availableCash + cncMarketValue + misUnrealizedPnL;
 
     // 4. Cumulative P&L (True Profit Created)
     const cumulativePnL = equity - netExternalCapital;
@@ -104,38 +104,6 @@ export const calculateAccountMetrics = ({
         isProfit: cumulativePnL >= 0,
         isDayProfit: totalDayPnL >= 0,
         isPositionsDayProfit: positionsDayPnL >= 0,
-    };
-};
-
-// Legacy Adapters for Backward Compatibility
-export const calculatePortfolioMetrics = (allHoldings = [], availableCash = 100000) => {
-    let totalInvestment = 0;
-    let totalCurrentValue = 0;
-
-    allHoldings.forEach(stock => {
-        totalInvestment += (Number(stock.qty) || 0) * (Number(stock.avg || stock.avgPrice) || 0);
-        totalCurrentValue += (Number(stock.qty) || 0) * (Number(stock.price) || 0);
-    });
-
-    const totalPnL = totalCurrentValue - totalInvestment;
-    const pnlPercentage = totalInvestment > 0 ? ((totalPnL / totalInvestment) * 100).toFixed(2) : "0.00";
-
-    const cncCostBasis = totalInvestment;
-    const availableMargin = Number(availableCash) || 0;
-
-    return {
-        totalInvestment,
-        totalCurrentValue,
-        totalPnL,
-        pnlPercentage,
-        isProfit: totalPnL >= 0,
-        isOverallProfit: totalPnL >= 0,
-        isoverallProfit: totalPnL >= 0,
-        cncCostBasis,
-        usedMargin: 0, // CNC does not use leverage margin
-        marginsUsed: 0,
-        availableMargin,
-        marginAvailable: availableMargin,
     };
 };
 
@@ -184,4 +152,18 @@ export const formatK = (val) => {
         return (val / 1000).toFixed(2) + "k";
     }
     return Number(val).toFixed(2);
+};
+
+export const formatCurrency = val => {
+    if (val === undefined || val === null || isNaN(val)) return "₹0.00";
+    const num = Number(val);
+    return `₹${num.toLocaleString("en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+};
+
+
+export const formatPnL = val => {
+    if(val === undefined || val === null || isNaN(val)) return "₹0.00";
+    const num = Number(val);
+    const sign = num > 0 ? "+" : num < 0 ? "-" : "";
+    return `₹${sign}${Math.abs(num).toLocaleString("en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 };

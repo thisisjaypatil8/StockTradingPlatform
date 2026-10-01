@@ -2,11 +2,14 @@ const {Schema} = require("mongoose");
 const passportLocalMongoose = require("passport-local-mongoose");
 
 const UserSchema = new Schema({
+    // account
     email: {
         type: String,
         required:true,
         unique:true,
     },
+
+    // funds
     funds:{
         availableCash:{
             type:Number,
@@ -25,17 +28,24 @@ const UserSchema = new Schema({
             default: 0,
         },
     },
+
+    // Authorization
     role: {
         type: String,
         enum: ["user", "admin"],
         default: "user",
     },
+
+    // metadata
     createdAt:{
         type: Date,
         default: Date.now,
     },
 });
 
-UserSchema.plugin(passportLocalMongoose.default || passportLocalMongoose);
+UserSchema.plugin(
+    // prevents "passport-local-mongoose is not a function" on CJS/ESM hybrids
+    passportLocalMongoose.default || passportLocalMongoose
+);
 
 module.exports = UserSchema;

@@ -1,5 +1,5 @@
 import { VerticalGraph } from "../../shared/charts/VerticalGraph.jsx";
-import { calculatePortfolioMetrics } from "../../../utils/portfolioMath.js";
+import { calculateAccountMetrics, formatCurrency, formatPnL } from "../../../utils/portfolioMath.js";
 import { usePortfolio } from "../../../context/PortfolioContext.jsx";
 import styles from "./Holdings.module.css";
 
@@ -15,12 +15,14 @@ export default function Holdings() {
   }
 
   const {
-    totalInvestment,
-    totalCurrentValue,
-    totalPnL,
-    pnlPercentage,
-    isOverallProfit,
-  } = calculatePortfolioMetrics(allHoldings);
+    cncCostBasis: totalInvestment,
+    cncMarketValue: totalCurrentValue,
+    cncUnrealizedPnL: totalPnL,
+  } = calculateAccountMetrics({ holdings: allHoldings });
+
+  const isOverallProfit = totalPnL >= 0;
+  const pnlPercentage = totalInvestment > 0 ? ((totalPnL / totalInvestment) * 100).toFixed(2) : "0.00";
+
 
   // Vertical graph data preparation
   const labels = allHoldings.map((stock) => stock.name);
@@ -59,7 +61,7 @@ export default function Holdings() {
             {allHoldings.map((stock) => {
               const curValue = stock.price * stock.qty;
               const pnl = curValue - stock.avg * stock.qty;
-              const profClass = pnl >= 0 ? styles.profit : styles.loss;
+              const profClass = pnl > 0 ? styles.profit: pnl < 0 ? styles.loss : '';
               const dayClass = stock.isLoss ? styles.loss : styles.profit;
               return (
                 <tr key={stock.name}>
@@ -86,36 +88,19 @@ export default function Holdings() {
       <div className={styles.summaryRow}>
         <div className={styles.summaryCol}>
           <h5>
-            ₹{" "}
-            {totalInvestment.toLocaleString("en-IN", {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}
+           {formatCurrency(totalInvestment)}
           </h5>
           <p>Total investment</p>
         </div>
         <div className={styles.summaryCol}>
           <h5>
-            ₹{" "}
-            {totalCurrentValue.toLocaleString("en-IN", {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}
+           {formatCurrency(totalCurrentValue)}
           </h5>
           <p>Current value</p>
         </div>
         <div className={styles.summaryCol}>
           <h5 className={isOverallProfit ? styles.profit : styles.loss}>
-            ₹{" "}
-            {isOverallProfit
-              ? `+${totalPnL.toLocaleString("en-IN", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}`
-              : totalPnL.toLocaleString("en-IN", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}{" "}
+            {formatPnL(totalPnL)}{" "}
             <span
               className={`${styles.pnlPercentage} ${
                 isOverallProfit ? styles.profit : styles.loss

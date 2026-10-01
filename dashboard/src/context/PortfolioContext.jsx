@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import API from "../api";
+import { fetchBatchQuotes } from "../utils/marketQuotes";
 
 const PortfolioContext = createContext();
 
@@ -9,17 +10,22 @@ export const PortfolioProvider = ({ children }) => {
     const [funds, setFunds] = useState({ availableCash: 100000 });
     const [loading, setLoading] = useState(true);
 
+    const applyFundsUpdate = data => {
+        if(data && data.availableCash !== undefined){
+            setFunds({
+                availableCash: Number(data.availableCash) || 0,
+                totalDeposited: Number(data.totalDeposited) || 0,
+                totalWithdrawn: Number(data.totalWithdrawn) || 0,
+                lifetimeRealizedPnL: Number(data.lifetimeRealizedPnL) || 0,
+            });
+        }
+    };
+
     //1. Fetch live wallet balance from backend
     const fetchFunds = async () => {
         try {
             const res = await API.get("/funds");
-            if (res.data && res.data.availableCash !== undefined) {
-                setFunds({
-                    availableCash: res.data.availableCash,
-                    totalDeposited: res.data.totalDeposited,
-                    totalWithdrawn: res.data.totalWithdrawn,
-                });
-            }
+            applyFundsUpdate(res.data);
         } catch (err) {
             console.error("Failed to fetch funds", err);
         }
@@ -28,13 +34,7 @@ export const PortfolioProvider = ({ children }) => {
     //2. add funds action
     const addFunds = async (amount) => {
         const res = await API.post("/funds/add", { amount });
-        if (res.data && res.data.availableCash != undefined) {
-            setFunds({
-                availableCash: res.data.availableCash,
-                totalDeposited: res.data.totalDeposited,
-                totalWithdrawn: res.data.totalWithdrawn,
-            });
-        }
+        applyFundsUpdate(res.data);
         return res.data;
 
     }
@@ -43,14 +43,7 @@ export const PortfolioProvider = ({ children }) => {
     const withdrawFunds = async (amount) => {
         try {
             const res = await API.post("/funds/withdraw", { amount });
-
-            if (res.data && res.data.availableCash != undefined) {
-                setFunds({
-                    availableCash: res.data.availableCash,
-                    totalDeposited: res.data.totalDeposited,
-                    totalWithdrawn: res.data.totalWithdrawn,
-                });
-            }
+            applyFundsUpdate(res.data);
             return res.data;
         } catch (err) {
             throw err;
@@ -70,14 +63,7 @@ export const PortfolioProvider = ({ children }) => {
             }
 
             // Single batched quotes fetch (eliminates N+1 waterfall)
-            const symbols = holdingsData.map((s) => s.name).join(",");
-            let quoteMap = {};
-            try {
-                const qRes = await API.get(`/market/quotes?symbols=${symbols}`);
-                quoteMap = qRes.data || {};
-            } catch (qErr) {
-                console.warn("Batch quote fetch failed, using stored holding prices:", qErr);
-            }
+            const quoteMap = await fetchBatchQuotes(holdingsData);
 
             // Attach latest LTP data
             const enrichedHoldings = holdingsData.map((stock) => {

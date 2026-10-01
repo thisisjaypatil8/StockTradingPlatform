@@ -5,7 +5,7 @@ import API from "../../../api";
 import styles from "./WatchList.module.css";
 import WatchListActions from "./WatchListActions";
 
-export default function WatchListItem({ stock }) {
+export default function WatchListItem({ stock, onRemove }) {
   const [showWatchlistActions, setShowWatchlistActions] = useState(false);
 
   // 1. Initial state from static data (Zero loading flicker)
@@ -65,7 +65,7 @@ export default function WatchListItem({ stock }) {
           </span>
         </div>
       </div>
-      {showWatchlistActions && <WatchListActions uid={stock.name} />}
+      {showWatchlistActions && <WatchListActions uid={stock.name} onRemove={onRemove}/>}
     </li>
   );
 }

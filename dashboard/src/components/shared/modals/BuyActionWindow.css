@@ -224,8 +224,9 @@
     height: auto !important;
     max-height: 85vh !important;
     position: fixed !important;
-    box-shadow: 0px 8px 30px rgb(0, 0, 0, 0.35) !important;
-    overflow-y: scroll !important;
+    box-shadow: 0px 8px 30px rgba(0, 0, 0, 0.35) !important;
+    overflow-y: auto !important;
+    z-index: 100000 !important;
   }
 
   .regular-order {
@@ -240,5 +241,6 @@
     padding: 12px 16px !important;
     top: 0 !important;
     margin-top: 10px;
+    margin-bottom: 12px;
   }
 }

@@ -1,4 +1,4 @@
-import { calculateIntradayPositionMetrics } from "../../../utils/portfolioMath";
+import { calculateIntradayPositionMetrics, formatPnL } from "../../../utils/portfolioMath";
 import styles from "./Positions.module.css";
 
 export default function PositionRow({ stock, onSquareOff }) {
@@ -38,13 +38,13 @@ export default function PositionRow({ stock, onSquareOff }) {
       <td>₹{Number(stock.avg || 0).toFixed(2)}</td>
       <td>₹{Number(stock.price || 0).toFixed(2)}</td>
       <td className={realizedClass}>
-        ₹{realized >= 0 ? `+${realized.toFixed(2)}` : realized.toFixed(2)}
+        {formatPnL(realized)}
       </td>
       <td className={unrealizedClass}>
-        ₹{unrealized >= 0 ? `+${unrealized.toFixed(2)}` : unrealized.toFixed(2)}
+        {formatPnL(unrealized)}
       </td>
       <td className={totalClass}>
-        ₹{totalPnL >= 0 ? `+${totalPnL.toFixed(2)}` : totalPnL.toFixed(2)}
+        {formatPnL(totalPnL)}
       </td>
       <td>
         {!isClosed ? (

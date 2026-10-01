@@ -1,16 +1,12 @@
 const Positions = require("../model/PositionsModel");
-const Orders = require("../model/OrdersModel");
-const User = require("../model/UserModel");
 const { getCurrentStockPrice } = require("./market");
+const { getISTStartOfDay } = require("../utils/time");
 
 module.exports.getAllPositions = async (req, res) => {
-    //1. get Start-of-day IST timestamp for today
-    const now = new Date();
-    const istString = now.toLocaleString("en-US", { timeZone:"Asia/Kolkata" });
-    const istDate = new Date(istString);
-    istDate.setHours(0, 0, 0, 0);
+    // 1. Get start-of-day in IST
+    const istDate = getISTStartOfDay(new Date());
 
-    //2. Purge positions older than today because PnL of them is already settled
+    // 2. Delete MIS positions older than today (already settled)
     await Positions.deleteMany({
         user: req.user.id,
         product: "MIS",
@@ -19,7 +15,7 @@ module.exports.getAllPositions = async (req, res) => {
         updatedAt: { $lt: istDate }
     });
 
-    //3. Return only those positions which are Open or traded today
+    // 3. Get all positions (open + netQty != 0)
     const allPositions = await Positions.find({ user: req.user.id }).lean();
     res.status(200).json(allPositions);
 };

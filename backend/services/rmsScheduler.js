@@ -1,4 +1,5 @@
 const { executeGlobalAutoSquareOff } = require("../controllers/positions");
+const { getISTDate } = require("../utils/time");
 
 let lastExecutedDate = "";
 
@@ -8,12 +9,7 @@ function startRmsScheduler() {
     // will check time after every 60 seconds
     setInterval(async () => {
         try {
-            const now = new Date();
-            const istString = now.toLocaleString("en-US", {
-                timeZone: "Asia/Kolkata"
-            });
-            const istDate = new Date(istString);
-
+            const istDate = getISTDate();
             const day = istDate.getDay();
             const hours = istDate.getHours();
             const minutes = istDate.getMinutes();
