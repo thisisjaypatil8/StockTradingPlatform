@@ -1,109 +1,69 @@
-
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import Home from "./components/layout/Home.jsx";
 import { useEffect, useState } from "react";
 
-
-
-const envAdminUser = (import.meta.env.VITE_ADMIN_USERNAME || "").trim().toLowerCase();
-const envAdminEmail = (import.meta.env.VITE_ADMIN_EMAIL || "").trim().toLowerCase();
-
-const verifyIsAdmin = (role, uname, email) => {
-  const u = (uname || "").trim().toLowerCase();
-  const e = (email || "").trim().toLowerCase();
-  const matchesEnv = (envAdminUser && u === envAdminUser) || (envAdminEmail && e === envAdminEmail);
-  return role === "admin" && matchesEnv;
-};
-
 export default function App() {
-
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    //1. check the query parameter in url
+    // 1. Check query parameters from login handoff
     const queryParams = new URLSearchParams(window.location.search);
     const tokenFromUrl = queryParams.get("token");
     const usernameFromUrl = queryParams.get("username");
     const userIdFromUrl = queryParams.get("userId");
-    const roleFromUrl = queryParams.get("role");
+    const roleFromUrl = queryParams.get("role") || "user";
 
     if (tokenFromUrl) {
-      // Decode JWT payload if possible
-      let role = roleFromUrl;
-      let email = null;
-      try {
-        const payload = JSON.parse(atob(tokenFromUrl.split('.')[1]));
-        if (!role && payload.role) role = payload.role;
-        email = payload.email;
-      } catch (e) {}
-
-      const isSoleAdmin = verifyIsAdmin(role, usernameFromUrl, email);
-
-      // Save token in Port 3000 Local Storage
+      // Save token in LocalStorage
       localStorage.setItem("token", tokenFromUrl);
       localStorage.setItem("user", JSON.stringify({ 
         username: usernameFromUrl, 
         id: userIdFromUrl,
-        email: email,
-        role: isSoleAdmin ? "admin" : "user"
+        role: roleFromUrl
       }));
-      // Remove the token from url (Zero security leakage)
+      // Remove query string from URL (clean URL & security)
       window.history.replaceState({}, document.title, window.location.pathname);
       setIsAuthenticated(true);
-    }else{
-      //2.Check if token is not in url , check in local storage for keep the user logged in
+    } else {
+      // 2. Persistent session check
       const savedToken = localStorage.getItem("token");
-      if(savedToken){
-        try {
-          const raw = localStorage.getItem("user");
-          const u = raw ? JSON.parse(raw) : {};
-          let role = u.role || "user";
-          let email = u.email;
-          try {
-            const payload = JSON.parse(atob(savedToken.split('.')[1]));
-            if (payload.role) role = payload.role;
-            if (payload.email) email = payload.email;
-          } catch (e) {}
-          const isSoleAdmin = verifyIsAdmin(role, u.username, email);
-          u.role = isSoleAdmin ? "admin" : "user";
-          localStorage.setItem("user", JSON.stringify(u));
-        } catch (e) {}
-        setIsAuthenticated(true);
-      }else{
-        setIsAuthenticated(false);
-      }
+      setIsAuthenticated(Boolean(savedToken));
     }
     setLoading(false);
-  },[]);
+  }, []);
 
-  if(loading){
-    return <div style={{textAlign:"center", marginTop:"20%"}}><h4>Loading Kite Terminal...</h4></div>
+  if (loading) {
+    return <div style={{ textAlign: "center", marginTop: "20%" }}><h4>Loading Kite Terminal...</h4></div>;
   }
 
-  //Protected Route Guard: If user is not authenticated redirect to login page
+  // Protected Route Guard
   if (!isAuthenticated) {
-    return(
-      <div style={{textAlign:"center", marginTop:"15%", fontFamily:"sans-serif"}}>
-        <img src="logo.png" alt="Zerodha" style={{width:"60px", marginBottom:"20px"}} />
-        <h2 style={{color:"#444"}}> Session Expired or Unauthorized</h2>
-        <p style={{color:"#888", marginBottom:"25px"}}>Please log in via the Kite portal to access your trading dashboard.</p>
+    const signupUrl = (import.meta.env.VITE_WWW_URL || "http://localhost:5173") + "/signup";
+    return (
+      <div style={{ textAlign: "center", marginTop: "15%", fontFamily: "sans-serif" }}>
+        <img src="logo.png" alt="Zerodha" style={{ width: "60px", marginBottom: "20px" }} />
+        <h2 style={{ color: "#444" }}>Session Expired or Unauthorized</h2>
+        <p style={{ color: "#888", marginBottom: "25px" }}>Please log in via the Kite portal to access your trading dashboard.</p>
         <button
-        onClick={() => window.location.href = "http://localhost:5173/signup"}
-        style={{
-          backgroundColor:"#387ed1",
-          color:"#fff",
-          padding:"10px 24px",
-          border:"none",
-          borderRadius:"4px",
-          cursor:"pointer",
-          fontSize:"15px",
-          fontWeight:"500",
-        }}>Go to Login / Sign Up</button>
+          onClick={() => window.location.href = signupUrl}
+          style={{
+            backgroundColor: "#387ed1",
+            color: "#fff",
+            padding: "10px 24px",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+            fontSize: "15px",
+            fontWeight: "500",
+          }}
+        >
+          Go to Login / Sign Up
+        </button>
       </div>
-    )
+    );
   }
-  
+
   return (
     <BrowserRouter>
       <Routes>

@@ -37,43 +37,14 @@ export const GeneralContextProvider = (props) => {
     return localStorage.getItem("isSimulationMode") === "true";
   });
 
-  // Check admin identity strictly via environment configuration
+  // Check admin role strictly from server-authoritative session
   useEffect(() => {
     try {
       const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
-      const savedToken = localStorage.getItem("token");
-      let tokenRole = null;
-      let tokenUsername = null;
-      let tokenEmail = null;
-      if (savedToken) {
-        try {
-          const payload = JSON.parse(atob(savedToken.split(".")[1]));
-          tokenRole = payload?.role;
-          tokenUsername = payload?.username;
-          tokenEmail = payload?.email;
-        } catch (e) {}
-      }
+      const userIsAdmin = storedUser?.role === "admin";
+      setIsAdmin(userIsAdmin);
 
-      const role = storedUser?.role || tokenRole;
-      const username = (storedUser?.username || tokenUsername || "").trim().toLowerCase();
-      const email = (storedUser?.email || tokenEmail || "").trim().toLowerCase();
-
-      const isSoleAdmin = verifyIsAdmin(role, username, email);
-
-      setIsAdmin(Boolean(isSoleAdmin));
-
-      // Synchronize stored user in local storage
-      if (isSoleAdmin) {
-        if (storedUser && storedUser.role !== "admin") {
-          storedUser.role = "admin";
-          localStorage.setItem("user", JSON.stringify(storedUser));
-        }
-      } else {
-        // Demote all other users in local storage & kill simulation mode
-        if (storedUser && storedUser.role === "admin") {
-          storedUser.role = "user";
-          localStorage.setItem("user", JSON.stringify(storedUser));
-        }
+      if (!userIsAdmin) {
         setIsSimulationMode(false);
         localStorage.setItem("isSimulationMode", "false");
       }

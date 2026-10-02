@@ -1,21 +1,22 @@
 const User = require("../model/UserModel");
 const ExpressError = require("../utils/ExpressError");
 
-function buildFundsResponse(user, message = null){
+function buildFundsResponse(user, message = null) {
     const funds = user.funds || {};
     const response = {
         success: true,
         availableCash: funds.availableCash !== undefined ? funds.availableCash : 100000,
+        marginBlocked: funds.marginBlocked !== undefined ? funds.marginBlocked : 0,
         totalDeposited: funds.totalDeposited !== undefined ? funds.totalDeposited : 100000,
         totalWithdrawn: funds.totalWithdrawn || 0,
         lifetimeRealizedPnL: funds.lifetimeRealizedPnL || 0,
     };
-    if(message){
+    if (message) {
         response.message = message;
     }
-
     return response;
-};
+}
+
 
 // 1. Get Live Cash Balance
 module.exports.getFunds = async (req, res) => {

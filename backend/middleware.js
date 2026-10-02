@@ -78,6 +78,12 @@ module.exports.validateOrderInput = (req, res, next) => {
         throw new ExpressError(400, "Price must be a valid positive number!");
     }
 
+    // NSE Cash Tick Size Rule: Auto-snap to nearest 5 paise (₹0.05)
+    // E.g. 222.37 -> 222.35, 100.03 -> 100.05
+    const snappedPrice = Number((Math.round(orderPrice * 20) / 20).toFixed(2));
+    req.body.price = snappedPrice;
+
+
     if (!["BUY", "SELL"].includes(mode)) {
         throw new ExpressError(400, "Invalid mode! Must be BUY or SELL.");
     }
@@ -101,22 +107,22 @@ const idempotencyStore = new Map();
 //Evict keys older than 2 min to prevent memory leaks
 const IDEMPOTENCY_TTL = 1000 * 60 * 2; //2 min
 
-module.exports.idempotencyGuard = (req, res, next) =>{
+module.exports.idempotencyGuard = (req, res, next) => {
     //1. Check if client provided an idempotent key
     const key = req.headers["x-idempotency-key"];
-    if(!key){
-       //If not provided, continue normally (non-breaking)
-       return next();
+    if (!key) {
+        //If not provided, continue normally (non-breaking)
+        return next();
     }
-    
+
     const cached = idempotencyStore.get(key);
 
     //2. If key exists and is still valid
-    if(cached){
-        if(Date.now() < cached.expiresAt){
+    if (cached) {
+        if (Date.now() < cached.expiresAt) {
             //Return cached response without touching DB or debiting funds!
             return res.status(cached.statusCode).json(cached.body);
-        } else{
+        } else {
             //Old entry expired → delete
             idempotencyStore.delete(key);
         }
@@ -126,7 +132,7 @@ module.exports.idempotencyGuard = (req, res, next) =>{
     const originalJson = res.json.bind(res);
     res.json = (body) => {
         // cache response if everything is okay
-        if(res.statusCode >= 200 && res.statusCode < 300){ 
+        if (res.statusCode >= 200 && res.statusCode < 300) {
             idempotencyStore.set(key, {
                 statusCode: res.statusCode,
                 body,
@@ -136,7 +142,7 @@ module.exports.idempotencyGuard = (req, res, next) =>{
         // call original response sender
         return originalJson(body);
     };
-    
+
     // pass response to next handler
     next();
 };
@@ -162,7 +168,7 @@ const handleValidationErrorDB = (err) => {
     return new ExpressError(400, message);
 };
 
-const handleJWTError = () =>{
+const handleJWTError = () => {
     return new ExpressError(401, "Invalid authentication token! Please log in again.");
 };
 
@@ -180,13 +186,13 @@ module.exports.errorHandler = (err, req, res, next) => {
     if (err.name === "CastError") error = handleCastErrorDB(err);
     if (err.code === 11000) error = handleDuplicateFieldsDB(err);
     if (err.name === "ValidationError") error = handleValidationErrorDB(err);
-    if(err.name === "JsonWebTokenError") error = handleJWTError(err);
+    if (err.name === "JsonWebTokenError") error = handleJWTError(err);
     if (err.name === "TokenExpiredError") error = handleJWTExpiredError(err);
 
     const isDev = process.env.NODE_ENV !== "production";
-    
+
     // In Development: Full stack trace for rapid debugging
-    if(isDev){
+    if (isDev) {
         return res.status(error.statusCode).json({
             success: false,
             status: error.status,
@@ -196,7 +202,7 @@ module.exports.errorHandler = (err, req, res, next) => {
     }
 
     // In Production
-    if(error.isOperational){
+    if (error.isOperational) {
         return res.status(error.statusCode).json({
             success: false,
             error: error.message
@@ -210,25 +216,25 @@ module.exports.errorHandler = (err, req, res, next) => {
         success: false,
         message: "Something went wrong on our end. Please try again later."
     })
-   
+
 }
 
 // Sanitizes keys starting with '$' or containing '.' to neutralize NoSQL injection
 const cleanObject = (obj) => {
     if (!obj || typeof obj !== "object") return;
-    for(const key of Object.keys(obj)){
-        if(key.startsWith("$") || key.includes(".")){
+    for (const key of Object.keys(obj)) {
+        if (key.startsWith("$") || key.includes(".")) {
             delete obj[key]; //Strip dangerous operators
-        } else if (typeof obj[key] === "object"){
+        } else if (typeof obj[key] === "object") {
             cleanObject(obj[key]); // recurse deeper for nested objects
         }
     }
 };
 
 module.exports.sanitizeData = (req, res, next) => {
-    if(req.body) cleanObject(req.body);
-    if(req.query) cleanObject(req.query);
-    if(req.params) cleanObject(req.params);
+    if (req.body) cleanObject(req.body);
+    if (req.query) cleanObject(req.query);
+    if (req.params) cleanObject(req.params);
     next();
 };
 

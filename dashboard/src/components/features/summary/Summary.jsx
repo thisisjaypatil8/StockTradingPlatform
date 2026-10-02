@@ -18,6 +18,7 @@ export default function Summary() {
   // Canonical Institutional Calculations (Single-Pass)
   const metrics = calculateAccountMetrics({
     cash: funds.availableCash,
+    margin: funds.marginBlocked,
     holdings: allHoldings,
     positions: allPositions,
     grossDeposited: funds.totalDeposited,

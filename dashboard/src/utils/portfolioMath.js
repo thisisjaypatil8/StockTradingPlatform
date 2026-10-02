@@ -12,6 +12,7 @@
 
 export const calculateAccountMetrics = ({
     cash = 0,
+    margin = 0,
     holdings = [],
     positions = [],
     grossDeposited = 0,
@@ -60,9 +61,12 @@ export const calculateAccountMetrics = ({
         totalMarginBlocked += marginBlocked;
     });
 
+    //Total Margin Blocked (prefer backend wallet marginBlocked, fallback to positions sum)
+    const marginBlocked = Number(margin) || totalMarginBlocked;
+
     // 3. Account Equity (Net Liquidation Value)
     // Cash already holds realized profits/losses; unrealized is floating
-    const equity = availableCash + cncMarketValue + misUnrealizedPnL;
+    const equity = availableCash + marginBlocked + cncMarketValue + misUnrealizedPnL;
 
     // 4. Cumulative P&L (True Profit Created)
     const cumulativePnL = equity - netExternalCapital;
@@ -83,7 +87,7 @@ export const calculateAccountMetrics = ({
 
         // Balances & Values
         availableCash,
-        marginBlocked: totalMarginBlocked,
+        marginBlocked,
         cncCostBasis,
         cncMarketValue,
         cncUnrealizedPnL,

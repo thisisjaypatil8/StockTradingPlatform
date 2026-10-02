@@ -4,30 +4,17 @@ const User = require("../model/UserModel");
 const ExpressError = require("../utils/ExpressError");
 const { JWT_SECRET } = require("../middleware");
 
-
-const checkIsAdminIdentifier = (username = "", email = "") => {
-    const adminUser = (process.env.ADMIN_USERNAME || "").trim().toLowerCase();
-    const adminEmail = (process.env.ADMIN_EMAIL || "").trim().toLowerCase();
-    const u = (username || "").trim().toLowerCase();
-    const e = (email || "").trim().toLowerCase();
-    return Boolean((adminUser && u === adminUser) || (adminEmail && e === adminEmail));
-};
-
 // signup Route
 module.exports.signup = async (req, res) => {
-
     const { username, email, password } = req.body;
 
     if (!username || !email || !password) {
         throw new ExpressError(400, "All fields are required");
     }
 
-    const assignRole = checkIsAdminIdentifier(username, email) ? "admin" : "user";
-
-    // Public signup is ALWAYS role: "user"!
+    // Public signup is ALWAYS role: "user" (DB role is authoritative)
     const newUser = new User({ email, username, role: "user" });
 
-    // user.register() password ko mongo me save krenge
     const registeredUser = await User.register(newUser, password);
 
     // Generate JWT token
@@ -55,14 +42,11 @@ module.exports.login = (req, res, next) => {
     passport.authenticate("local", (err, user, info) => {
         if (err) return next(err);
         if (!user) {
-            // if (wrong username or password)
             return res.status(401).json({ error: info?.message || "Invalid username or password!" });
         }
 
-        const isAdmin = checkIsAdminIdentifier(user.username, user.email);
-        // Database role is authoritative!
+        // Database role is authoritative
         const userRole = user.role || "user";
-
 
         // Generate JWT Token
         const token = jwt.sign(

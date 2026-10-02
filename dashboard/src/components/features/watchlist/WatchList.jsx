@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import styles from "./WatchList.module.css";
+import { fetchBatchQuotes } from "../../../utils/marketQuotes";
 import { watchlist as defaultWatchlist } from "../../../data/data";
 import { DoughnutChart } from "../../shared/charts/DoughnutChart";
 import WatchListItem from "./WatchListItem";
@@ -43,6 +44,43 @@ export default function WatchList() {
 
     return () => clearTimeout(timer);
   }, [searchTerm]);
+
+
+    // Batch Quote polling: 1 single network request for all watchlist stocks
+  useEffect(() => {
+    let isMounted = true;
+
+    const refreshWatchlistQuotes = async () => {
+      if (userWatchlist.length === 0) return;
+      try {
+        const quoteMap = await fetchBatchQuotes(userWatchlist);
+        if (!isMounted || !quoteMap) return;
+
+        setUserWatchlist((prev) =>
+          prev.map((stock) => {
+            const quote = quoteMap[stock.name.toUpperCase()] || quoteMap[stock.name];
+            if (!quote) return stock;
+            return {
+              ...stock,
+              price: Number(quote.price) || stock.price,
+              percent: quote.percent || stock.percent,
+              isDown: quote.isLoss !== undefined ? quote.isLoss : stock.isDown,
+            };
+          })
+        );
+      } catch (err) {
+        console.warn("Watchlist batch quote failed:", err);
+      }
+    };
+
+    refreshWatchlistQuotes();
+    const interval = setInterval(refreshWatchlistQuotes, 15000); // 15 sec live cycle
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [userWatchlist.length]);
 
   // Add stock to Watchlist
   const handleAddStock = (item) => {

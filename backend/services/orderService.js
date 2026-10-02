@@ -7,6 +7,8 @@ const User = require("../model/UserModel");
 
 const ExpressError = require("../utils/ExpressError");
 const { round2 } = require("../utils/math");
+const { applyFill: domainApplyFill } = require("../domain/fills");
+const { toPaise, toRupees } = require("../domain/money");
 
 // constants
 const PRODUCTS = {
@@ -50,6 +52,43 @@ async function recordRealizedPnL(userId, amount, session) {
         { session }
     );
 }
+
+// Atomically lock margin from availableCash into marginBlocked
+async function lockMargin(userId, amount, session) {
+    const user = await User.findOneAndUpdate(
+        { _id: userId, "funds.availableCash": { $gte: amount } },
+        {
+            $inc: {
+                "funds.availableCash": -amount,
+                "funds.marginBlocked": amount
+            }
+        },
+        { returnDocument: "after", session }
+    );
+
+    if (!user) {
+        throw new ExpressError(
+            400,
+            `Insufficient funds for intraday margin! Required ₹${amount.toLocaleString("en-IN")}`
+        );
+    }
+    return user;
+}
+
+// Atomically release margin from marginBlocked back into availableCash
+async function releaseMargin(userId, amount, session) {
+    return User.findByIdAndUpdate(
+        userId,
+        {
+            $inc: {
+                "funds.availableCash": amount,
+                "funds.marginBlocked": -amount
+            }
+        },
+        { returnDocument: "after", session }
+    );
+}
+
 
 // CNC Execution
 async function executeCncBuy({ userId, name, orderQty, orderPrice, session }) {
@@ -152,82 +191,6 @@ function syncLegacyPositionFields(position, qty, avgPrice) {
     position.sellQty = 0;
     position.sellAvg = 0;
 }
-// MIS fill engine
-function applyFill(position, side, orderQty, orderPrice) {
-    const currentQty = position.netQty ?? position.qty ?? 0;
-    const currentAvg = position.avgEntry ?? position.avg ?? 0;
-
-    let newQty = currentQty;
-    let newAvg = currentAvg;
-    let realizedDelta = 0;
-
-    // Buy
-    if (side === SIDES.BUY) {
-        // Case 1: BUY into Long
-        if (currentQty >= 0) {
-            newAvg = ((currentQty * currentAvg) + (orderQty * orderPrice)) / (currentQty + orderQty);
-            newQty = currentQty + orderQty;
-        }
-        // Case 2: BUY to reduce short
-        else if (orderQty <= Math.abs(currentQty)) {
-            realizedDelta = (currentAvg - orderPrice) * orderQty;
-            newQty = currentQty + orderQty;
-            newAvg = newQty === 0 ? 0 : currentAvg;
-        }
-        // Case 3: BUY and flip short -> long
-        else {
-            const coverQty = Math.abs(currentQty);
-            realizedDelta = (currentAvg - orderPrice) * coverQty;
-            newQty = orderQty - coverQty;
-            newAvg = orderPrice;
-        }
-    }
-
-    // Sell
-    else if (side === SIDES.SELL) {
-        // Case 4: Sell into long
-        if (currentQty > 0 && orderQty <= currentQty) {
-            realizedDelta = (orderPrice - currentAvg) * orderQty;
-            newQty = currentQty - orderQty;
-            newAvg = newQty === 0 ? 0 : currentAvg;
-        }
-        // Case 5: SELL and flip long -> short
-        else if (currentQty > 0 && orderQty > currentQty) {
-            const exitQty = currentQty;
-            realizedDelta = (orderPrice - currentAvg) * exitQty;
-            newQty = -(orderQty - exitQty);
-            newAvg = orderPrice;
-        }
-        // Case 6: Sell into short
-        else {
-            const absQty = Math.abs(currentQty);
-            newAvg = ((absQty * currentAvg) + (orderQty * orderPrice)) / (absQty + orderQty);
-            newQty = currentQty - orderQty;
-        }
-    }
-
-    realizedDelta = round2(realizedDelta);
-    newAvg = round2(newAvg);
-
-    // Margin Blocked for MIS (5x Leverage: 20% margin)
-    const marginBlocked = calculateMarginBlocked(newQty, newAvg);
-
-    // update position document
-    position.netQty = newQty;
-    position.qty = newQty;
-
-    position.avgEntry = newAvg;
-    position.avg = newAvg;
-
-    position.price = orderPrice;
-    position.marginBlocked = marginBlocked;
-    position.realizedPnL = round2((position.realizedPnL || 0) + realizedDelta);
-
-    // Legacy sync
-    syncLegacyPositionFields(position, newQty, newAvg);
-
-    return { realizedDelta, newQty, newAvg, marginBlocked };
-}
 
 // MIS Position execution
 function createEmptyMisPosition({ name, userId, orderPrice, }) {
@@ -257,25 +220,72 @@ async function executeMisOrder({ userId, name, orderQty, orderPrice, mode, sessi
     let position = await Positions.findOne({
         name,
         user: userId,
-        product: "MIS"
+        product: PRODUCTS.MIS
     }).session(session);
 
     if (!position) {
         position = createEmptyMisPosition({ name, userId, orderPrice });
     }
 
-    // Apply fill using 6-state matrix
-    const { realizedDelta } = applyFill(position, mode, orderQty, orderPrice);
+    const currentPos = {
+        netQty: position.netQty || 0,
+        avgPaise: toPaise(position.avgEntry || 0),
+    };
 
-    // Settle realized P&L into wallet
-    if (realizedDelta !== 0) {
-        await creditCash(userId, realizedDelta, session);
-        await recordRealizedPnL(userId, realizedDelta, session);
+    const fill = {
+        side: mode,
+        qty: orderQty,
+        pricePaise: toPaise(orderPrice),
+    };
+
+    // 1. Run pure institutional fill engine
+    const fillResult = domainApplyFill(currentPos, fill);
+
+    const oldMargin = position.marginBlocked || 0;
+    const newNetQty = fillResult.newNetQty;
+    const newAvgRupees = toRupees(fillResult.newAvgPaise);
+    const realizedDeltaRupees = toRupees(fillResult.realizedDeltaPaise);
+
+    // 2. Compute 5x margin (20% of notional)
+    const newMargin = newNetQty === 0
+        ? 0
+        : round2((Math.abs(newNetQty) * newAvgRupees) / MIS_LEVERAGE);
+
+    const marginDelta = round2(newMargin - oldMargin);
+
+    // 3. Atomically Lock or Release Margin in User Wallet
+    if (marginDelta > 0) {
+        // Position opened or expanded -> Lock additional cash
+        await lockMargin(userId, marginDelta, session);
+    } else if (marginDelta < 0) {
+        // Position reduced or closed -> Release collateral back to available cash
+        await releaseMargin(userId, Math.abs(marginDelta), session);
     }
 
+    // 4. Settle Realized P&L into Wallet
+    if (realizedDeltaRupees !== 0) {
+        await creditCash(userId, realizedDeltaRupees, session);
+        await recordRealizedPnL(userId, realizedDeltaRupees, session);
+    }
+
+    // 5. Update Position Document
+    position.netQty = newNetQty;
+    position.qty = newNetQty;
+    position.avgEntry = newAvgRupees;
+    position.avg = newAvgRupees;
+    position.price = orderPrice;
+    position.marginBlocked = newMargin;
+    position.realizedPnL = round2((position.realizedPnL || 0) + realizedDeltaRupees);
+
+    syncLegacyPositionFields(position, newNetQty, newAvgRupees);
+
     await position.save({ session });
-    return { realizedPnL: realizedDelta };
+    return {
+        realizedPnL: realizedDeltaRupees,
+        marginBlocked: newMargin
+    };
 }
+
 
 // MAIN ORDER EXECUTION
 async function executeOrder({ userId, name, qty, price, mode, product = PRODUCTS.CNC }) {
@@ -319,14 +329,21 @@ async function executeOrder({ userId, name, qty, price, mode, product = PRODUCTS
     }
 
     //3. Get final wallet state
-    const user = 
+    const user =
         await User.findById(userId).lean();
+
+    const orderCost = round2(orderQty * orderPrice);
+    const cashDiff = product === PRODUCTS.CNC
+        ? (mode === SIDES.BUY ? -orderCost : orderCost)
+        : (executionSettlement?.realizedPnL || 0);
 
     return {
         executedOrder,
 
         settlement: {
+            cashDiff,
             realizedPnL: executionSettlement?.realizedPnL || 0,
+            marginBlocked: user?.funds?.marginBlocked || 0,
             availableCash: user?.funds?.availableCash || 0,
             lifetimeRealizedPnL: user?.funds?.lifetimeRealizedPnL || 0
         },
@@ -335,5 +352,5 @@ async function executeOrder({ userId, name, qty, price, mode, product = PRODUCTS
 
 module.exports = {
     executeOrder,
-    applyFill
+    applyFill: domainApplyFill,
 };

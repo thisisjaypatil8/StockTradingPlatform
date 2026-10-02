@@ -35,9 +35,6 @@ module.exports.getHistory = async (req, res) => {
     return res.json(data);
 };
 
-// Re-export for internal controllers like positions.js
-module.exports.getCurrentStockPrice = marketService.getCurrentStockPrice;
-
 // Live Search Controller 
 module.exports.searchStocks = async (req, res) => {
     const query = req.query.q;

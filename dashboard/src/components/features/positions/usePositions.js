@@ -48,8 +48,13 @@ export const usePositions = () => {
   useEffect(() => {
     isMountedRef.current = true;
     fetchPositions();
+
+    const handlePortfolioUpdate = () => fetchPositions();
+    window.addEventListener("portfolioUpdated", handlePortfolioUpdate);
+
     return () => {
       isMountedRef.current = false;
+      window.removeEventListener("portfolioUpdated", handlePortfolioUpdate);
     };
   }, []);
 
@@ -112,14 +117,14 @@ export const usePositions = () => {
     const isConfirmed = window.confirm(
       " RMS Liquidation Alert\n\nDo you want to square-off all MIS positions now?\n\nThis action cannot be undone."
     );
-    if(!isConfirmed) return;
+    if (!isConfirmed) return;
 
-    try{
+    try {
       const res = await API.post("/allPositions/squareoffAll");
       alert(res.data.message || "All open positions squared off successfully!");
       fetchPositions();  // instant re-fetch without page reload!
     }
-    catch(err){
+    catch (err) {
       alert(err.response?.data?.error || "Failed to executed RMS Square-Off");
     }
   };

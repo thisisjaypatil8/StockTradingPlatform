@@ -1,4 +1,4 @@
-const { executeGlobalAutoSquareOff } = require("../controllers/positions");
+const { executeGlobalAutoSquareOff } = require("./rmsService");
 const { getISTDate } = require("../utils/time");
 
 let lastExecutedDate = "";

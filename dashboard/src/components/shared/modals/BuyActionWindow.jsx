@@ -3,6 +3,7 @@ import { useState, useContext, useEffect } from "react";
 import "./BuyActionWindow.css";
 import GeneralContext from "../../../context/GeneralContext";
 import API from "../../../api";
+import { usePortfolio } from "../../../context/PortfolioContext";
 
 export default function BuyActionWindow({ uid, mode }) {
   const [stockQuantity, setStockQuantity] = useState(1);
@@ -11,45 +12,65 @@ export default function BuyActionWindow({ uid, mode }) {
   const [productType, setProductType] = useState("CNC");
 
   const { closeOrderWindow, isSimulationMode } = useContext(GeneralContext);
+  const { refreshPortfolio, refreshFunds } = usePortfolio(); // <-- YEH MISSING THA!
   const isSell = mode === "SELL";
+
+  const snapToTick = (val) => {
+    const num = Number(val);
+    if (isNaN(num) || num <= 0) return 0;
+    return Number((Math.round(num * 20) / 20).toFixed(2));
+  };
 
   const handleOrderSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+    let orderSuccess = false;
+
     try {
       const res = await API.post("/newOrder", {
         name: uid,
         qty: Number(stockQuantity),
-        price: Number(stockPrice),
+        price: snapToTick(stockPrice),
         mode: mode,
         product: productType,
         isSimulation: isSimulationMode,
-      },{
+      }, {
         headers: {
-          "X-Idempotency-Key":
-          `${uid}-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`
+          "X-Idempotency-Key": `${uid}-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`
         }
       });
-      
-      const settlement=res.data.settlement;
-      let alertMsg =`${mode} order executed successfully!`
-      if(settlement){
-        if(mode === "SELL"){
+
+      const settlement = res.data.settlement;
+      let alertMsg = `${mode} order executed successfully!`;
+      if (settlement) {
+        if (mode === "SELL") {
           const sign = settlement.realizedPnL >= 0 ? "+" : "";
-          alertMsg += `\n\ Settlement: \n• Qty Sold: ${stockQuantity} @ ₹${Number(stockPrice).toFixed(2)}\n• Cash Credited to Wallet: ₹${Number(settlement.cashDiff).toLocaleString("en-IN")}\n• Realized P&L: ${sign}₹${Number(settlement.realizedPnL).toFixed(2)}\n• Available Cash: ₹${Number(settlement.availableCash).toLocaleString("en-IN")}`;
-        }else{
-          alertMsg += `\n\n Settlement:\n• Qty Bought: ${stockQuantity} @ ₹${Number(stockPrice).toFixed(2)}\n• Cash Debited: ₹${Number(Math.abs(settlement.cashDiff)).toLocaleString("en-IN")}\n• Available Cash: ₹${Number(settlement.availableCash).toLocaleString("en-IN")}`;
+          alertMsg += `\n\nSettlement:\n• Qty Sold: ${stockQuantity} @ ₹${Number(stockPrice).toFixed(2)}\n• Cash Credited to Wallet: ₹${Number(settlement.cashDiff).toLocaleString("en-IN")}\n• Realized P&L: ${sign}₹${Number(settlement.realizedPnL).toFixed(2)}\n• Available Cash: ₹${Number(settlement.availableCash).toLocaleString("en-IN")}`;
+        } else {
+          alertMsg += `\n\nSettlement:\n• Qty Bought: ${stockQuantity} @ ₹${Number(stockPrice).toFixed(2)}\n• Cash Debited: ₹${Number(Math.abs(settlement.cashDiff)).toLocaleString("en-IN")}\n• Available Cash: ₹${Number(settlement.availableCash).toLocaleString("en-IN")}`;
         }
       }
       alert(alertMsg);
       closeOrderWindow();
-      window.location.reload();
+      orderSuccess = true;
     } catch (err) {
       alert(err.response?.data?.error || `Failed to execute ${mode} order?!`);
     } finally {
       setIsSubmitting(false);
     }
+
+    // Post-execution reactive refresh (Runs only if order actually succeeded)
+    if (orderSuccess) {
+      try {
+        if (refreshPortfolio) await refreshPortfolio();
+        if (refreshFunds) await refreshFunds();
+        window.dispatchEvent(new Event("portfolioUpdated"));
+      } catch (refreshErr) {
+        console.warn("Portfolio auto-refresh warning:", refreshErr);
+      }
+    }
   };
+
 
   const handleCancelClick = (e) => {
     e.preventDefault();
@@ -65,7 +86,7 @@ export default function BuyActionWindow({ uid, mode }) {
       try {
         const res = await API.get(`/market/quote/${uid}`);
         if (res.data && res.data.price) {
-          setStockPrice(res.data.price);
+          setStockPrice(snapToTick(res.data.price));
         }
       } catch (err) {
         console.warn(`Could not fetch live CMP for ${uid}, fallback to 0.0`);

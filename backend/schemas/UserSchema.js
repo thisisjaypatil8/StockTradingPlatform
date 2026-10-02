@@ -15,6 +15,10 @@ const UserSchema = new Schema({
             type:Number,
             default:100000,
         },
+        marginBlocked: {
+            type: Number,
+            default: 0,
+        },
         totalDeposited: {
             type: Number,
             default:100000, //initial balance is the first deposit
