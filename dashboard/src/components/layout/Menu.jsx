@@ -24,7 +24,8 @@ export default function Menu() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    window.location.href = "http://localhost:5173/signup?action=logout";
+    const wwwURL = import.meta.env.VITE_WWW_URL || "http://localhost:5173";
+    window.location.href = `${wwwURL}/signup?action=logout`;
   };
 
   return (
