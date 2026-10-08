@@ -12,12 +12,10 @@ module.exports.signup = async (req, res) => {
         throw new ExpressError(400, "All fields are required");
     }
 
-    // Public signup is ALWAYS role: "user" (DB role is authoritative)
     const newUser = new User({ email, username, role: "user" });
 
     const registeredUser = await User.register(newUser, password);
 
-    // Generate JWT token
     const token = jwt.sign(
         { id: registeredUser._id, username: registeredUser.username, email: registeredUser.email, role: registeredUser.role },
         JWT_SECRET,
@@ -45,10 +43,8 @@ module.exports.login = (req, res, next) => {
             return res.status(401).json({ error: info?.message || "Invalid username or password!" });
         }
 
-        // Database role is authoritative
         const userRole = user.role || "user";
 
-        // Generate JWT Token
         const token = jwt.sign(
             { id: user._id, username: user.username, email: user.email, role: userRole },
             JWT_SECRET,

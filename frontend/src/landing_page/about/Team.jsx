@@ -17,7 +17,7 @@ export default function Team() {
 
                     <p className="para">Playing basketball is his zen.</p>
 
-                    <p className="para"><a href="#" className="text-decoration-none">Homepage</a> &nbsp;|&nbsp; <a href="#" className="text-decoration-none">TradingQnA</a> &nbsp;|&nbsp; <a href="#" className="text-decoration-none">Twitter</a></p>
+                    <p className="para"><a href={import.meta.env.VITE_BASE_URL} className="text-decoration-none">Homepage</a> &nbsp;|&nbsp; <a href="#" className="text-decoration-none">TradingQnA</a> &nbsp;|&nbsp; <a href="#" className="text-decoration-none">Twitter</a></p>
                 </div>
             </div>
         </div>

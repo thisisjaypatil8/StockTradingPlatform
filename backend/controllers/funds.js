@@ -24,14 +24,12 @@ module.exports.getFunds = async (req, res) => {
 
     if(!user) throw new ExpressError(404, "User not found!");
 
-    // Auto-migrate legacy users who don't have deposit/withdrawal tracking
     if (user.funds && user.funds.totalDeposited == null) {
-        user.funds.totalDeposited = 100000;  // Initial balance counts as first deposit
+        user.funds.totalDeposited = 100000;
         user.funds.totalWithdrawn = 0;
         await user.save();
     }
 
-    // Fallback for legacy documents
     const availableCash = user.funds?.availableCash !== undefined ? user.funds.availableCash : 100000;
 
     res.status(200).json(buildFundsResponse(user));

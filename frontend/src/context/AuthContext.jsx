@@ -59,8 +59,10 @@ export function AuthProvider({children}){
 
     const isLoggedIn = Boolean(token && user);
 
+    const DASHBOARD_URL = import.meta.env.VITE_DASHBOARD_URL || "http://localhost:3000";
+
     // Session handoff URL
-    const dashboardUrl = isLoggedIn ? `http://localhost:3000/?token=${token}&username=${encodeURIComponent(user.username || "")}&userId=${user.id || user._id || ""}&role=${encodeURIComponent(user.role || "")}` : "http://localhost:3000/";
+    const dashboardUrl = isLoggedIn ? `${DASHBOARD_URL}/?token=${token}&username=${encodeURIComponent(user.username || "")}&userId=${user.id || user._id || ""}&role=${encodeURIComponent(user.role || "")}` : `${DASHBOARD_URL}/`;
 
 
     return(

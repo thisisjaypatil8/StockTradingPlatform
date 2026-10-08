@@ -28,8 +28,11 @@ export default function Signup() {
 
         const endpoint = isLoginMode ? "/login" : "/signup";
 
+        const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+        const DASHBOARD_URL = import.meta.env.VITE_DASHBOARD_URL || "http://localhost:3000";
+
         try {
-            const response = await fetch(`http://localhost:5000${endpoint}`, {
+            const response = await fetch(`${API_URL}${endpoint}`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -46,7 +49,7 @@ export default function Signup() {
             if (data.token) {
                 login(data.token, data.user);
 
-                window.location.href = `http://localhost:3000/?token=${data.token}&username=${encodeURIComponent(data.user.username)}&userId=${data.user.id}&role=${encodeURIComponent(data.user.role || "")}`;
+                window.location.href = `${DASHBOARD_URL}/?token=${data.token}&username=${encodeURIComponent(data.user.username)}&userId=${data.user.id}&role=${encodeURIComponent(data.user.role || "")}`;
             }
         } catch (err) {
             setError(err.message);

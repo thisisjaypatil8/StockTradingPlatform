@@ -28,10 +28,14 @@ export default function Footer() {
                         </div>
                         <div className="d-flex mt-4 gap-2">
                             <div>
-                                <img src="/media/images/google-play-badge-light.svg" className="img-fluid" style={{ maxWidth: "110px", width: "100%" }} alt="" />
+                                <a href="#">
+                                    <img src="/media/images/google-play-badge-light.svg" className="img-fluid" style={{ maxWidth: "110px", width: "100%" }} alt="" />
+                                </a>
                             </div>
                             <div>
-                                <img src="/media/images/appstore-badge-light.svg" className="img-fluid" style={{ maxWidth: "100px", width: "100%" }} alt="" />
+                                <a href="#">
+                                    <img src="/media/images/appstore-badge-light.svg" className="img-fluid" style={{ maxWidth: "100px", width: "100%" }} alt="" />
+                                </a>
                             </div>
                         </div>
                     </div>

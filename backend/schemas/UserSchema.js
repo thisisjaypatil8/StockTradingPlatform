@@ -21,11 +21,11 @@ const UserSchema = new Schema({
         },
         totalDeposited: {
             type: Number,
-            default:100000, //initial balance is the first deposit
+            default:100000,
         },
         totalWithdrawn: {
             type: Number,
-            default: 0, //after first deposit 
+            default: 0, 
         },
         lifetimeRealizedPnL: {
             type: Number,
@@ -36,7 +36,6 @@ const UserSchema = new Schema({
     // Authorization
     role: {
         type: String,
-        enum: ["user", "admin"],
         default: "user",
     },
 

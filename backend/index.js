@@ -26,7 +26,9 @@ const app = express();
 app.use(helmet());
 
 //2. Strict CORS Whitelist(Only our frontend and dashboard)
-const allowedOrigins = ["http://localhost:5173", "http://localhost:3000"];
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(",").map(o => o.trim())
+    : ["http://localhost:5173", "http://localhost:3000"];
 app.use(cors({
     origin: (origin, callback) => {
         // Allow requests with no origin (like Postman or mobile apps)
