@@ -32,3 +32,10 @@ Desktop.ini
 *.njsproj
 *.sln
 *.sw?
+
+#files which are created for explainations
+*explanation*.md
+*EXPLANATION*.md
+*MATH*.md
+*PLAN*.md
+
