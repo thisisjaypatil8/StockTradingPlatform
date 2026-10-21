@@ -6,9 +6,7 @@ const Positions = require("../model/PositionsModel");
 const User = require("../model/UserModel");
 
 const ExpressError = require("../utils/ExpressError");
-const { round2 } = require("../utils/math");
-const { applyFill: domainApplyFill } = require("../domain/fills");
-const { toPaise, toRupees } = require("../domain/money");
+const { round2, toPaise, toRupees } = require("../domain/money");
 
 // constants
 const PRODUCTS = {

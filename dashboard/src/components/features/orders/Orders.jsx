@@ -1,24 +1,12 @@
 import { Link } from "react-router-dom";
-import { useState, useEffect } from "react";
-import API from "../../../api";
+import { useState } from "react";
+import { useOrders } from "./useOrders";
 import styles from "./Orders.module.css";
 
 export default function Orders() {
-  const [allOrders, setAllOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { allOrders, loading } = useOrders();
   const [filter, setFilter] = useState("ALL");
 
-  useEffect(() => {
-    API.get("/allOrders")
-      .then((res) => {
-        setAllOrders(res.data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Error fetching orders:", err);
-        setLoading(false);
-      });
-  }, []);
 
   if (loading) {
     return (

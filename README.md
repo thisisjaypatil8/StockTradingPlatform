@@ -53,13 +53,19 @@ Dashboard (React, port 3000) ──┼──►  Express API (port 5000)  ──
 .
 ├── backend/
 │   ├── controllers/     # orders, market, auth, positions
+│   ├── domain/          # institutional fills, weighted average, money math
 │   ├── middleware.js    # security, idempotency, market hours, error handling
-│   ├── model/           # Mongoose schemas
+│   ├── models/          # consolidated Mongoose models & schemas (User, Order, Position, Holding)
 │   ├── routes/          # Express routes
-│   ├── services/        # order logic and square-off scheduler
-│   └── utils/           # error class and async wrapper
-├── dashboard/           # Trading terminal (port 3000)
-└── frontend/            # Landing page and signup (port 5173)
+│   ├── services/        # order logic, market quotes & RMS square-off scheduler
+│   ├── tests/           # unit & accounting invariant test vectors
+│   └── utils/           # LRU cache, promise pool, error handling
+├── dashboard/           # Trading terminal (React + Vite, port 3000)
+│   └── src/
+│       ├── components/  # Modular features with CSS Modules & custom data hooks
+│       ├── context/     # Scoped ModalContext
+│       └── utils/       # Market quotes & portfolio math
+└── frontend/            # Landing page and signup with Vitest suite (React + Vite, port 5173)
 ```
 
 ---
@@ -203,6 +209,18 @@ npm run dev
 # Terminal 3: Frontend (http://localhost:5173)
 cd frontend
 npm run dev
+```
+
+### 4. Run tests
+
+```bash
+# Backend unit & invariant test suite
+cd backend
+npm test
+
+# Frontend component & Vitest suite
+cd frontend
+npm test
 ```
 
 ---

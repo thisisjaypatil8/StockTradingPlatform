@@ -6,7 +6,7 @@ import {
   CrosshairMode,
 } from "lightweight-charts";
 import API from "../../../api";
-import "./StockChartWindow.css";
+import styles from "./StockChartWindow.module.css";
 
 export default function StockChartWindow({ uid, onClose }) {
   const chartContainerRef = useRef(null);
@@ -152,42 +152,42 @@ export default function StockChartWindow({ uid, onClose }) {
   }, [candles, loading, error]);
 
   return (
-    <div className="chart-window-overlay" onClick={onClose}>
-      <div className="chart-window-container" onClick={(e) => e.stopPropagation()}>
-        <div className="chart-window-header">
-          <div className="chart-header-info">
+    <div className={styles.overlay} onClick={onClose}>
+      <div className={styles.container} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.header}>
+          <div className={styles.headerInfo}>
             <h3>{uid}</h3>
             {stockMeta && (
               <>
-                <span className="chart-current-price">₹{stockMeta.currentPrice}</span>
-                <span className={`chart-price-change ${stockMeta.isLoss ? "loss" : "gain"}`}>
+                <span className={styles.currentPrice}>₹{stockMeta.currentPrice}</span>
+                <span className={`${styles.priceChange} ${stockMeta.isLoss ? styles.loss : styles.gain}`}>
                   {stockMeta.change >= 0 ? "+" : ""}
                   {stockMeta.change} ({stockMeta.isLoss ? "Down" : "Up"})
                 </span>
               </>
             )}
           </div>
-          <button className="chart-close-btn" onClick={onClose}>
+          <button className={styles.closeBtn} onClick={onClose}>
             &times;
           </button>
         </div>
 
-        <div className="chart-window-body">
-          {loading && <div className="chart-loading">Fetching live NSE market ticks... ⚡</div>}
-          {error && <div className="chart-error">⚠️ {error}</div>}
+        <div className={styles.body}>
+          {loading && <div className={styles.statusMessage}>Fetching live NSE market ticks... ⚡</div>}
+          {error && <div className={`${styles.statusMessage} ${styles.errorMessage}`}>⚠️ {error}</div>}
           {!loading && !error && !candles.length && (
-            <div className="chart-error">⚠️ No market tick data available for this session.</div>
+            <div className={`${styles.statusMessage} ${styles.errorMessage}`}>⚠️ No market tick data available for this session.</div>
           )}
           <div
             ref={chartContainerRef}
-            className="chart-canvas-container"
+            className={styles.canvasContainer}
             style={{
               display: loading || error || !candles.length ? "none" : "block",
             }}
           />
         </div>
 
-        <div className="chart-window-footer">
+        <div className={styles.footer}>
           <span>Intraday (1D · 5m Interval)</span>
           <span>TradingView Lightweight Charts™</span>
         </div>
@@ -195,3 +195,4 @@ export default function StockChartWindow({ uid, onClose }) {
     </div>
   );
 }
+

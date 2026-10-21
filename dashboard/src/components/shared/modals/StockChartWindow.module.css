@@ -1,4 +1,4 @@
-.chart-window-overlay {
+.overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -12,7 +12,7 @@
   align-items: center;
 }
 
-.chart-window-container {
+.container {
   width: 680px;
   max-width: 92vw;
   background: #ffffff;
@@ -20,22 +20,21 @@
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
   overflow: hidden;
   border: 1px solid #e0e0e0;
-  animation: fadeInModal 0.2s ease-out;
+  animation: fadeIn 0.2s ease-out;
 }
 
-@keyframes fadeInModal {
+@keyframes fadeIn {
   from {
     opacity: 0;
     transform: scale(0.96) translateY(10px);
   }
-
   to {
     opacity: 1;
     transform: scale(1) translateY(0);
   }
 }
 
-.chart-window-header {
+.header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -44,39 +43,39 @@
   border-bottom: 1px solid #eee;
 }
 
-.chart-header-info {
+.headerInfo {
   display: flex;
   align-items: baseline;
   gap: 14px;
 }
 
-.chart-header-info h3 {
+.headerInfo h3 {
   margin: 0;
   font-size: 1.25rem;
   font-weight: 600;
   color: #333;
 }
 
-.chart-current-price {
+.currentPrice {
   font-size: 1.15rem;
   font-weight: 600;
   color: #222;
 }
 
-.chart-price-change {
+.priceChange {
   font-size: 0.9rem;
   font-weight: 500;
 }
 
-.chart-price-change.gain {
+.gain {
   color: #4caf50;
 }
 
-.chart-price-change.loss {
+.loss {
   color: #df514c;
 }
 
-.chart-close-btn {
+.closeBtn {
   background: transparent;
   border: none;
   font-size: 1.5rem;
@@ -88,12 +87,12 @@
   transition: all 0.15s ease;
 }
 
-.chart-close-btn:hover {
+.closeBtn:hover {
   background: #eaeaea;
   color: #222;
 }
 
-.chart-window-body {
+.body {
   padding: 14px 20px 0 20px;
   height: 350px;
   position: relative;
@@ -101,13 +100,12 @@
   overflow: hidden;
 }
 
-.chart-canvas-container {
+.canvasContainer {
   width: 100%;
   height: 100%;
 }
 
-.chart-loading,
-.chart-error {
+.statusMessage {
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -117,7 +115,11 @@
   font-size: 0.95rem;
 }
 
-.chart-window-footer {
+.errorMessage {
+  color: #df514c;
+}
+
+.footer {
   display: flex;
   justify-content: space-between;
   align-items: center;

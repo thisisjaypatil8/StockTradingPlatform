@@ -1,12 +1,11 @@
-import { useContext } from "react";
 import { Grow, Tooltip } from "@mui/material";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import GeneralContext from "../../../context/GeneralContext";
+import { useModal } from "../../../context/ModalContext";
 import styles from "./WatchList.module.css";
 
 export default function WatchListActions({ uid, onRemove }) {
-  const { openOrderWindow, openChartWindow } = useContext(GeneralContext);
+  const { openOrderWindow, openChartWindow } = useModal();
 
   const handleOrderClick = (type) => {
     openOrderWindow(uid, type);

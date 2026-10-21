@@ -1,5 +1,8 @@
-function toPaise(rupees){
-    if(rupees == null || isNaN(rupees)) return 0;
+const round2 = (value) => Number(Number(value).toFixed(2));
+
+
+function toPaise(rupees) {
+    if (rupees == null || isNaN(rupees)) return 0;
     const num = Number(rupees);
     return Math.sign(num) * Math.round(Math.abs(num) * 100);
 }
@@ -15,4 +18,9 @@ function roundPaise(num){
     return Math.sign(num) * Math.round(Math.abs(num));
 }
 
-module.exports = {toPaise, toRupees, roundPaise}
+module.exports = {
+    toPaise,
+    toRupees,
+    roundPaise,
+    round2,
+}

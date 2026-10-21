@@ -1,4 +1,4 @@
-async function asyncPool(tasks, limit = 4){
+async function asyncPool(tasks, limit = 3){
     const results = [];
     const executing = new Set();
 

@@ -1,0 +1,123 @@
+.modalContainer {
+  --radius: 6px;
+  width: 440px;
+  max-width: 90vw;
+  background: #ffffff;
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  cursor: default;
+  box-sizing: border-box;
+  z-index: 1000;
+  border-radius: var(--radius);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.header {
+  width: 100%;
+  background: #4184f3;
+  box-sizing: border-box;
+  padding: 16px 20px;
+  color: #ffffff;
+}
+
+.header.sellHeader {
+  background: #ff5722;
+}
+
+.header h3 {
+  margin: 0 0 4px 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.header h3 span {
+  font-size: 0.75rem;
+  opacity: 0.85;
+  margin-left: 8px;
+}
+
+.productOptions {
+  display: flex;
+  gap: 16px;
+  font-size: 0.85rem;
+  margin-top: 6px;
+}
+
+.productOptions label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.body {
+  padding: 20px;
+}
+
+.inputGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fieldGroup label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.fieldGroup input {
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.fieldGroup input:focus {
+  border-color: #4184f3;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 14px;
+}
+
+.btnAction {
+  padding: 8px 20px;
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 0.9rem;
+  border: none;
+  cursor: pointer;
+  color: #fff;
+  background: #4184f3;
+}
+
+.btnAction.btnSell {
+  background: #ff5722;
+}
+
+.btnCancel {
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 0.9rem;
+  border: 1px solid #cbd5e1;
+  background: transparent;
+  cursor: pointer;
+  color: #475569;
+}

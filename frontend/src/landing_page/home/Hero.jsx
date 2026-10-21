@@ -9,7 +9,7 @@ export default function Hero() {
                 <div className="container py-4 py-md-5 my-md-4">
 
                     <div className="row justify-content-center text-center">
-                        <img src="media/images/homeHero.svg" alt="homeHero" className="img-fluid mb-4 mb-md-5" style={{ maxWidth: "600px", width: "100%" }} />
+                        <img src="/media/images/homeHero.svg" alt="homeHero" className="img-fluid mb-4 mb-md-5" style={{ maxWidth: "600px", width: "100%" }} />
                         <h1 className="mt-3 fs-2 fw-bold">
                             Invest in everything
                         </h1>

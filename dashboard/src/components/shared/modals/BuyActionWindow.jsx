@@ -1,7 +1,6 @@
-
-import { useState, useContext, useEffect } from "react";
-import "./BuyActionWindow.css";
-import GeneralContext from "../../../context/GeneralContext";
+import { useState } from "react";
+import styles from "./BuyActionWindow.module.css";
+import { useModal } from "../../../context/ModalContext";
 import API from "../../../api";
 import { usePortfolio } from "../../../context/PortfolioContext";
 
@@ -11,8 +10,8 @@ export default function BuyActionWindow({ uid, mode }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [productType, setProductType] = useState("CNC");
 
-  const { closeOrderWindow, isSimulationMode } = useContext(GeneralContext);
-  const { refreshPortfolio, refreshFunds } = usePortfolio(); // <-- YEH MISSING THA!
+  const { closeOrderWindow, isSimulationMode } = useModal();
+  const { refreshPortfolio, refreshFunds } = usePortfolio();
   const isSell = mode === "SELL";
 
   const snapToTick = (val) => {
@@ -24,14 +23,12 @@ export default function BuyActionWindow({ uid, mode }) {
   const handleOrderSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    let orderSuccess = false;
-
     try {
-      const res = await API.post("/newOrder", {
+      await API.post("/newOrder", {
         name: uid,
         qty: Number(stockQuantity),
         price: snapToTick(stockPrice),
-        mode: mode,
+        mode,
         product: productType,
         isSimulation: isSimulationMode,
       }, {
@@ -39,175 +36,88 @@ export default function BuyActionWindow({ uid, mode }) {
           "X-Idempotency-Key": `${uid}-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`
         }
       });
-
-      const settlement = res.data.settlement;
-      let alertMsg = `${mode} order executed successfully!`;
-      if (settlement) {
-        if (mode === "SELL") {
-          const sign = settlement.realizedPnL >= 0 ? "+" : "";
-          alertMsg += `\n\nSettlement:\n• Qty Sold: ${stockQuantity} @ ₹${Number(stockPrice).toFixed(2)}\n• Cash Credited to Wallet: ₹${Number(settlement.cashDiff).toLocaleString("en-IN")}\n• Realized P&L: ${sign}₹${Number(settlement.realizedPnL).toFixed(2)}\n• Available Cash: ₹${Number(settlement.availableCash).toLocaleString("en-IN")}`;
-        } else {
-          alertMsg += `\n\nSettlement:\n• Qty Bought: ${stockQuantity} @ ₹${Number(stockPrice).toFixed(2)}\n• Cash Debited: ₹${Number(Math.abs(settlement.cashDiff)).toLocaleString("en-IN")}\n• Available Cash: ₹${Number(settlement.availableCash).toLocaleString("en-IN")}`;
-        }
-      }
-      alert(alertMsg);
+      await Promise.all([refreshPortfolio(), refreshFunds()]);
       closeOrderWindow();
-      orderSuccess = true;
     } catch (err) {
-      alert(err.response?.data?.error || `Failed to execute ${mode} order?!`);
+      alert(err.response?.data?.message || "Order execution failed!");
     } finally {
       setIsSubmitting(false);
     }
-
-    // Post-execution reactive refresh (Runs only if order actually succeeded)
-    if (orderSuccess) {
-      try {
-        if (refreshPortfolio) await refreshPortfolio();
-        if (refreshFunds) await refreshFunds();
-        window.dispatchEvent(new Event("portfolioUpdated"));
-      } catch (refreshErr) {
-        console.warn("Portfolio auto-refresh warning:", refreshErr);
-      }
-    }
   };
-
-
-  const handleCancelClick = (e) => {
-    e.preventDefault();
-    closeOrderWindow();
-  };
-
-  useEffect(() => {
-    if (!uid) {
-      return;
-    }
-
-    const fetchCurrentPrice = async () => {
-      try {
-        const res = await API.get(`/market/quote/${uid}`);
-        if (res.data && res.data.price) {
-          setStockPrice(snapToTick(res.data.price));
-        }
-      } catch (err) {
-        console.warn(`Could not fetch live CMP for ${uid}, fallback to 0.0`);
-      }
-    };
-
-    fetchCurrentPrice();
-  }, [uid]);
 
   return (
-    <div className="container" id="buy-window" draggable="true">
-      <div className="order-validity" style={{ marginBottom: "12px" }}>
-        <label
-          style={{
-            marginRight: "16px",
-            cursor: "pointer",
-            fontWeight: productType === "CNC" ? "bold" : "normal",
-          }}
-        >
-          <input
-            type="radio"
-            name="productType"
-            value="CNC"
-            checked={productType === "CNC"}
-            onChange={(e) => setProductType(e.target.value)}
-          />
-          CNC <span>(Delivery)</span>
-        </label>
-        <label
-          style={{
-            marginRight: "16px",
-            cursor: "pointer",
-            fontWeight: productType === "MIS" ? "bold" : "normal",
-          }}
-        >
-          <input
-            name="productType"
-            type="radio"
-            value="MIS"
-            checked={productType === "MIS"}
-            onChange={(e) => setProductType(e.target.value)}
-          />
-          MIS <span>(Intraday)</span>
-        </label>
-      </div>
-
-      <h4
-        style={{
-          color: isSell ? "#ff5722" : "#4184f3",
-          marginBottom: "10px",
-        }}
-      >
-        {mode} {uid}{" "}
-        {stockPrice > 0 && (
-          <span
-            style={{
-              fontSize: "0.8rem",
-              color: "#666",
-              fontWeight: "normal",
-            }}
-          >
-            (CMP: &#8377;{Number(stockPrice).toFixed(2)})
-          </span>
-        )}
-      </h4>
-      <div className="regular-order">
-        <div className="inputs">
-          <fieldset>
-            <legend>Qty.</legend>
+    <div className={styles.modalContainer}>
+      <div className={`${styles.header} ${isSell ? styles.sellHeader : ""}`}>
+        <h3>
+          {isSell ? "Sell" : "Buy"} {uid}
+          <span>x {stockQuantity} Qty</span>
+        </h3>
+        <div className={styles.productOptions}>
+          <label>
             <input
-              type="number"
-              name="qty"
-              id="qty"
-              onChange={(e) => setStockQuantity(e.target.value)}
-              value={stockQuantity}
+              type="radio"
+              value="CNC"
+              name="product"
+              checked={productType === "CNC"}
+              onChange={() => setProductType("CNC")}
             />
-          </fieldset>
-          <fieldset>
-            <legend>Price (₹) {!isSimulationMode ? "🔒 CMP" : "⚡ Edit"}</legend>
+            CNC (Delivery)
+          </label>
+          <label>
             <input
-              type="number"
-              name="price"
-              id="price"
-              step="0.05"
-              onChange={(e) => isSimulationMode && setStockPrice(e.target.value)}
-              value={stockPrice}
-              readOnly={!isSimulationMode}
-              title={
-                !isSimulationMode
-                  ? "Locked to Live CMP. Enable Admin Simulator in TopBar to edit price."
-                  : "Custom execution price editable"
-              }
-              style={{
-                backgroundColor: !isSimulationMode ? "#f8f9fa" : "#ffffff",
-                cursor: !isSimulationMode ? "not-allowed" : "text",
-                color: !isSimulationMode ? "#666" : "#111",
-              }}
+              type="radio"
+              value="MIS"
+              name="product"
+              checked={productType === "MIS"}
+              onChange={() => setProductType("MIS")}
             />
-          </fieldset>
-
+            MIS (5x Intraday)
+          </label>
         </div>
       </div>
 
-      <div className="buttons">
-        <span>Total Value: ₹{(stockQuantity * stockPrice).toFixed(2)}</span>
-        <div>
+      <form onSubmit={handleOrderSubmit} className={styles.body}>
+        <div className={styles.inputGrid}>
+          <div className={styles.fieldGroup}>
+            <label>Qty</label>
+            <input
+              type="number"
+              min="1"
+              value={stockQuantity}
+              onChange={(e) => setStockQuantity(e.target.value)}
+              required
+            />
+          </div>
+          <div className={styles.fieldGroup}>
+            <label>Price</label>
+            <input
+              type="number"
+              step="0.05"
+              min="0"
+              value={stockPrice}
+              onChange={(e) => setStockPrice(e.target.value)}
+              required
+            />
+          </div>
+        </div>
+
+        <div className={styles.footer}>
           <button
-            className={`btn btn-${isSell ? "orange" : "blue"}`}
-            style={{
-              backgroundColor: isSell ? "#ff5722" : "#4184f3",
-            }}
-            onClick={handleOrderSubmit}
+            type="submit"
             disabled={isSubmitting}
+            className={`${styles.btnAction} ${isSell ? styles.btnSell : ""}`}
           >
-            {isSubmitting ? "Executing..." : mode}
+            {isSubmitting ? "Executing..." : isSell ? "Sell" : "Buy"}
           </button>
-          <button className="btn btn-grey" onClick={handleCancelClick}>
+          <button
+            type="button"
+            onClick={closeOrderWindow}
+            className={styles.btnCancel}
+          >
             Cancel
           </button>
         </div>
-      </div>
+      </form>
     </div>
   );
 }

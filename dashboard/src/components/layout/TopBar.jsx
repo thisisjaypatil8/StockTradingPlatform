@@ -1,11 +1,11 @@
-import { useContext, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import Menu from "./Menu.jsx";
 import styles from "./TopBar.module.css";
-import GeneralContext from "../../context/GeneralContext.jsx";
+import { useModal } from "../../context/ModalContext.jsx";
 import API from "../../api";
 
 export default function TopBar() {
-  const { isAdmin, isSimulationMode, toggleSimulationMode } = useContext(GeneralContext);
+  const { isAdmin, isSimulationMode, toggleSimulationMode } = useModal();
 
   const [indices, setIndices] = useState({
     nifty: { price: "24,952.10", percent: "+0.42%", isLoss: false },

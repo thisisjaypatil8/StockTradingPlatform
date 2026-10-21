@@ -1,5 +1,13 @@
-// Production bounded LRU Cache(Least Recently Used)
-// Implements O(1) read, O(1) write, O(1) eviction using JS ordered map
+/**
+ * LRUCache — In-process bounded cache with TTL eviction.
+ *
+ * Single-instance constraint: this cache lives in Node.js process memory.
+ * If you run multiple server instances (horizontal scale / PM2 clusters),
+ * each process holds its own cache — no cross-process sharing or invalidation.
+ * For multi-instance deployments, replace with Redis (ioredis + TTL keys).
+ *
+ * O(1) read / write / eviction via JS Map insertion-order guarantee.
+ */
 
 class LRUCache {
     constructor({max = 300, ttlMs = 60_000} = {}){
