@@ -30,7 +30,7 @@ export default function Menu() {
 
   return (
     <div className={styles.menuContainer}>
-      <img src="logo.png" alt="Zerodha" className={styles.logo} />
+      <a href="/"><img src="logo.png" alt="Zerodha" className={styles.logo} /></a>
       <div className={styles.menus}>
         <ul>
           <li>

@@ -73,4 +73,7 @@ const PositionsSchema = new Schema({
     },
 }, { timestamps: true });
 
+// Compound unique index: one position record per stock per user
+PositionsSchema.index({ user: 1, name: 1, product: 1 }, { unique: true });
+
 module.exports = model("Positions", PositionsSchema);

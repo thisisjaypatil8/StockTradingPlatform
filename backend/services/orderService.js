@@ -1,9 +1,7 @@
 const mongoose = require("mongoose");
-
-const Orders = require("../model/OrdersModel");
-const Holdings = require("../model/HoldingsModel");
-const Positions = require("../model/PositionsModel");
-const User = require("../model/UserModel");
+const marketService = require("./marketService");
+const { applyFill: domainApplyFill } = require("../domain/fills");
+const { User, Orders, Holdings, Positions } = require("../models");
 
 const ExpressError = require("../utils/ExpressError");
 const { round2, toPaise, toRupees } = require("../domain/money");
@@ -286,9 +284,32 @@ async function executeMisOrder({ userId, name, orderQty, orderPrice, mode, sessi
 
 
 // MAIN ORDER EXECUTION
-async function executeOrder({ userId, name, qty, price, mode, product = PRODUCTS.CNC }) {
+async function executeOrder({ userId, name, qty, price, mode, product = PRODUCTS.CNC, idempotencyKey = null }) {
     const orderQty = Number(qty);
-    const orderPrice = Number(price);
+
+    // 1. server-side market price
+    const liveMarketPrice = await marketService.getLiveMarketPrice(name);
+    const orderPrice =
+        liveMarketPrice && Number(liveMarketPrice) > 0
+            ? Number(liveMarketPrice)
+            : Number(price);
+
+    // 2. Pre-check DB
+    if (idempotencyKey) {
+        const existingOrder =
+            await Orders.findOne({ user: userId, idempotencyKey }).lean();
+        if (existingOrder) {
+            return {
+                executedOrder: existingOrder,
+                settlement: {
+                    cashDiff: 0,
+                    realizedPnL: 0,
+                    isIdempotentReply: true,
+                    message: "Order already processed (idempotencyKey matched)"
+                }
+            };
+        }
+    }
 
     const session =
         await mongoose.startSession();
@@ -301,8 +322,8 @@ async function executeOrder({ userId, name, qty, price, mode, product = PRODUCTS
     try {
         await session.withTransaction(async () => {
 
-            // 1. Create order audit record
-            [executedOrder] =
+            // 3. create order audit record
+            try{ [executedOrder] =
                 await Orders.create(
                     [{
                         name,
@@ -310,12 +331,22 @@ async function executeOrder({ userId, name, qty, price, mode, product = PRODUCTS
                         price: orderPrice,
                         mode,
                         product,
+                        idempotencyKey,
                         user: userId
                     }],
                     { session }
-                );
+                );  
+            }
+            catch(err){
+                // if parallel race condition hit the unique compound index, abort transaction gracefully
+                if(err.code === 11000 && err.keyPattern?.idempotencyKey){
+                    throw new ExpressError(409, "Duplicate order request detected and blocked.")
+            }
+            throw err;
+        }
+           
 
-            // 2. Execute product
+            // 4. Execute product
             executionSettlement =
                 product === PRODUCTS.CNC
                     ? await executeCncOrder({ userId, name, orderQty, orderPrice, mode, session })
@@ -326,7 +357,7 @@ async function executeOrder({ userId, name, qty, price, mode, product = PRODUCTS
         await session.endSession();
     }
 
-    //3. Get final wallet state
+    //5. Get final wallet snapshot
     const user =
         await User.findById(userId).lean();
 

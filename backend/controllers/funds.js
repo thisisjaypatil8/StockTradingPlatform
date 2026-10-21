@@ -1,4 +1,4 @@
-const User = require("../model/UserModel");
+const { User } = require("../models");
 const ExpressError = require("../utils/ExpressError");
 
 function buildFundsResponse(user, message = null) {
@@ -20,27 +20,28 @@ function buildFundsResponse(user, message = null) {
 
 // 1. Get Live Cash Balance
 module.exports.getFunds = async (req, res) => {
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.id).lean();
 
     if(!user) throw new ExpressError(404, "User not found!");
-
-    if (user.funds && user.funds.totalDeposited == null) {
-        user.funds.totalDeposited = 100000;
-        user.funds.totalWithdrawn = 0;
-        await user.save();
-    }
-
-    const availableCash = user.funds?.availableCash !== undefined ? user.funds.availableCash : 100000;
 
     res.status(200).json(buildFundsResponse(user));
 };
 
 //2. Add Funds (Deposit)
+const MAX_SINGLE_DEPOSIT = 100000;
+
 module.exports.addFunds = async (req, res) => {
     const amount = Number(req.body.amount);
 
     if(!amount || isNaN(amount) || amount <= 0){
         throw new ExpressError(400, "Please enter a valid deposite amount greater than ₹0")
+    }
+
+    if (amount > MAX_SINGLE_DEPOSIT){
+        throw new ExpressError(
+            400,
+            `Single deposit limit is ₹${MAX_SINGLE_DEPOSIT.toLocaleString('en-IN')}. Please contact support for larger transfers.`
+        );
     }
 
     // Atomic increment

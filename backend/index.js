@@ -9,7 +9,7 @@ const marketRoutes = require("./routes/market");
 const fundsRoutes = require("./routes/funds");
 const { startRmsScheduler } = require("./services/rmsScheduler");
 const passport = require("passport");
-const User = require("./model/UserModel");
+const { User } = require("./models");
 const LocalStrategy = require("passport-local").Strategy;
 const mongoose = require("mongoose");
 const { errorHandler, sanitizeData } = require("./middleware");
@@ -21,6 +21,9 @@ const port = process.env.PORT;
 const url = process.env.MONGO_URL;
 
 const app = express();
+
+// Trust reverse proxy (Render, Heroku, Nginx) so express-rate-limit detects client IP accurately
+app.set("trust proxy", 1);
 
 //1. HTTP Security Headers
 app.use(helmet());

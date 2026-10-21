@@ -1,6 +1,6 @@
 const jwt = require("jsonwebtoken");
 const passport = require("passport");
-const User = require("../model/UserModel");
+const { User } = require("../models");
 const ExpressError = require("../utils/ExpressError");
 const { JWT_SECRET } = require("../middleware");
 

@@ -1,4 +1,4 @@
-const Positions = require("../model/PositionsModel");
+const Positions = require("../models/Position");
 const marketService = require("./marketService");
 const orderService = require("./orderService");
 

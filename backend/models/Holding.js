@@ -39,4 +39,7 @@ const HoldingsSchema = new Schema({
     },
 });
 
+// Compound unique index: one holding record per stock per user
+HoldingsSchema.index({ user: 1, name: 1 }, { unique: true });
+
 module.exports = model("Holdings", HoldingsSchema);

@@ -1,4 +1,4 @@
-const Holdings = require("../model/HoldingsModel");
+const { Holdings } = require("../models");
 
 module.exports.getAllHoldings = async (req, res) => {
     // only Loggedin user's data will send to client

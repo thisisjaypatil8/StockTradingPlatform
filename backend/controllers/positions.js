@@ -1,4 +1,4 @@
-const Positions = require("../model/PositionsModel");
+const { Position } = require("../models");
 const { getISTStartOfDay } = require("../utils/time");
 const rmsService = require("../services/rmsService");
 

@@ -250,6 +250,7 @@ module.exports = {
     getSingleQuote,
     getBatchQuotes,
     getCurrentStockPrice,
+    getLiveMarketPrice: getCurrentStockPrice,
     getHistory,
     searchSymbols,
     getMarketIndices,

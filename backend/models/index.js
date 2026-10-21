@@ -5,7 +5,10 @@ const Position = require("./Position");
 
 module.exports = {
     User,
+    Order,
     Orders: Order,
+    Holding,
     Holdings: Holding,
+    Position,
     Positions: Position,
 };

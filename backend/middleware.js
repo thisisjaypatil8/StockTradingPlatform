@@ -94,7 +94,7 @@ module.exports.validateOrderInput = (req, res, next) => {
 
     req.body.name = name.trim().toUpperCase();
     req.body.qty = orderQty;
-    req.body.price = orderPrice;
+    req.body.price = snappedPrice;
     req.body.product = product;
 
     next();
@@ -196,6 +196,7 @@ module.exports.errorHandler = (err, req, res, next) => {
         return res.status(error.statusCode).json({
             success: false,
             status: error.status,
+            message: error.message,
             error: error.message,
             stack: error.stack,
         });
@@ -205,8 +206,9 @@ module.exports.errorHandler = (err, req, res, next) => {
     if (error.isOperational) {
         return res.status(error.statusCode).json({
             success: false,
-            error: error.message
-        })
+            message: error.message,
+            error: error.message,
+        });
     }
 
     // In Production: Unknown Programming bug, leak zero internals
@@ -214,8 +216,9 @@ module.exports.errorHandler = (err, req, res, next) => {
 
     return res.status(500).json({
         success: false,
-        message: "Something went wrong on our end. Please try again later."
-    })
+        message: "Something went wrong on our end. Please try again later.",
+        error: "Something went wrong on our end. Please try again later.",
+    });
 
 }
 
