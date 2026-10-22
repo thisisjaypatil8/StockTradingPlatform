@@ -54,20 +54,26 @@ const executeGlobalAutoSquareOff = async (specificUserId = null) => {
             continue;
         }
 
-        const { executedOrder, settlement } = await orderService.executeOrder({
-            userId: pos.user,
-            name: pos.name,
-            qty: exitQty,
-            price: exitPrice,
-            mode: exitMode,
-            product: "MIS"
-        });
+        try {
+            const rmsIdempotencyKey = `RMS-${pos.user}-${pos.name}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+            const { executedOrder, settlement } = await orderService.executeOrder({
+                userId: pos.user,
+                name: pos.name,
+                qty: exitQty,
+                price: exitPrice,
+                mode: exitMode,
+                product: "MIS",
+                idempotencyKey: rmsIdempotencyKey
+            });
 
-        if (settlement?.realizedPnL) {
-            totalSettledAmount += settlement.realizedPnL;
-        }
-        if (executedOrder) {
-            executedOrders.push(executedOrder);
+            if (settlement?.realizedPnL) {
+                totalSettledAmount += settlement.realizedPnL;
+            }
+            if (executedOrder) {
+                executedOrders.push(executedOrder);
+            }
+        } catch (posErr) {
+            console.error(`[RMS] Failed to square off ${pos.name} for user ${pos.user}:`, posErr.message);
         }
     }
 

@@ -308,9 +308,10 @@ async function executeOrder({
     }
 
     // Pre-check DB
-    if (idempotencyKey) {
+    if (idempotencyKey && typeof idempotencyKey === "string" && idempotencyKey.trim().length > 0) {
+        const cleanKey = idempotencyKey.trim();
         const existingOrder =
-            await Orders.findOne({ user: userId, idempotencyKey }).lean();
+            await Orders.findOne({ user: userId, idempotencyKey: cleanKey }).lean();
         if (existingOrder) {
             return {
                 executedOrder: existingOrder,
@@ -336,27 +337,27 @@ async function executeOrder({
         await session.withTransaction(async () => {
 
             // 3. create order audit record
-            try{ [executedOrder] =
-                await Orders.create(
-                    [{
-                        name,
-                        qty: orderQty,
-                        price: orderPrice,
-                        mode,
-                        product,
-                        idempotencyKey,
-                        user: userId
-                    }],
-                    { session }
-                );  
+            const orderDoc = {
+                name,
+                qty: orderQty,
+                price: orderPrice,
+                mode,
+                product,
+                user: userId
+            };
+            if (idempotencyKey && typeof idempotencyKey === "string" && idempotencyKey.trim().length > 0) {
+                orderDoc.idempotencyKey = idempotencyKey.trim();
             }
-            catch(err){
+
+            try {
+                [executedOrder] = await Orders.create([orderDoc], { session });
+            } catch (err) {
                 // if parallel race condition hit the unique compound index, abort transaction gracefully
-                if(err.code === 11000 && err.keyPattern?.idempotencyKey){
-                    throw new ExpressError(409, "Duplicate order request detected and blocked.")
+                if (err.code === 11000 && err.keyPattern?.idempotencyKey) {
+                    throw new ExpressError(409, "Duplicate order request detected and blocked.");
+                }
+                throw err;
             }
-            throw err;
-        }
            
 
             // 4. Execute product
