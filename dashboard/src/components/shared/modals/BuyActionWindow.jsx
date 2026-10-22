@@ -12,7 +12,7 @@ export default function BuyActionWindow({ uid, mode = "BUY" }) {
     Number.isSafeInteger(quantity) &&
     quantity > 0;
 
-  const [stockPrice, setStockPrice] = useState(0);
+  const [stockPrice, setStockPrice] = useState("0");
   const price = Number(stockPrice);
   const isPriceValid =
     stockPrice.trim() !== "" &&
@@ -69,7 +69,7 @@ export default function BuyActionWindow({ uid, mode = "BUY" }) {
         setIsLoadingPrice(true);
         const res = await API.get(`/market/quote/${uid}`);
         if (isMounted && res.data && res.data.price) {
-          setStockPrice(Number(res.data.price));
+          setStockPrice(String(res.data.price));
         }
       } catch (err) {
         console.warn("Could not fetch live quote for", uid, err);
