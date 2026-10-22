@@ -284,17 +284,30 @@ async function executeMisOrder({ userId, name, orderQty, orderPrice, mode, sessi
 
 
 // MAIN ORDER EXECUTION
-async function executeOrder({ userId, name, qty, price, mode, product = PRODUCTS.CNC, idempotencyKey = null }) {
+async function executeOrder({
+    userId,
+    name,
+    qty,
+    price,
+    mode,
+    product = PRODUCTS.CNC,
+    idempotencyKey = null,
+    isSimulation = false
+}) {
     const orderQty = Number(qty);
+    const isSim = isSimulation === true || isSimulation === "true";
+    let orderPrice;
+    if (isSim && Number(price) > 0) {
+        orderPrice = Number(price);
+    } else {
+        const liveMarketPrice = await marketService.getLiveMarketPrice(name);
+        orderPrice =
+            liveMarketPrice && Number(liveMarketPrice) > 0
+                ? Number(liveMarketPrice)
+                : Number(price);
+    }
 
-    // 1. server-side market price
-    const liveMarketPrice = await marketService.getLiveMarketPrice(name);
-    const orderPrice =
-        liveMarketPrice && Number(liveMarketPrice) > 0
-            ? Number(liveMarketPrice)
-            : Number(price);
-
-    // 2. Pre-check DB
+    // Pre-check DB
     if (idempotencyKey) {
         const existingOrder =
             await Orders.findOne({ user: userId, idempotencyKey }).lean();

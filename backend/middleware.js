@@ -36,7 +36,7 @@ module.exports.checkMarketHours = (req, res, next) => {
     }
 
     //2. Admin simulation bypass (for testing)
-    if (req.user && req.user.role === "admin" && isSimulation === true) {
+    if (req.user && req.user.role === "admin" && (isSimulation === true || isSimulation === "true")) {
         return next();
     }
 
