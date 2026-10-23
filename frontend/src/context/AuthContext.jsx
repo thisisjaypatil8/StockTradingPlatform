@@ -13,20 +13,17 @@ export function AuthProvider({children}){
         }
     });
 
-    // cross tab-sync
+    /**
+     * Synchronize session across browser tabs and handle cross-origin logout actions.
+     */
     useEffect(() => {
-
-        // 1. Cross-port logout signal detector
         const urlParams = new URLSearchParams(window.location.search);
-        if(urlParams.get("action") === "logout"){
+        if (urlParams.get("action") === "logout") {
             logout();
-
-            // clean the url without Refreshing
             window.history.replaceState({}, document.title, window.location.pathname);
         }
 
-        // 2. Cross-tab storage change handler
-        const handleStorageChange = () =>{
+        const handleStorageChange = () => {
             const currentToken = localStorage.getItem("token");
             setToken(currentToken);
             try {
@@ -41,7 +38,6 @@ export function AuthProvider({children}){
         return () => window.removeEventListener("storage", handleStorageChange);
     }, []);
 
-    // login action
     const login = (newToken, newUser) => {
         localStorage.setItem("token", newToken);
         localStorage.setItem("user", JSON.stringify(newUser));
@@ -49,7 +45,6 @@ export function AuthProvider({children}){
         setUser(newUser);
     };
 
-    // logout action
     const logout = () => {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
@@ -58,24 +53,26 @@ export function AuthProvider({children}){
     };
 
     const isLoggedIn = Boolean(token && user);
-
     const DASHBOARD_URL = import.meta.env.VITE_DASHBOARD_URL || "http://localhost:3000";
 
-    // Session handoff URL
-    const dashboardUrl = isLoggedIn ? `${DASHBOARD_URL}/?token=${token}&username=${encodeURIComponent(user.username || "")}&userId=${user.id || user._id || ""}&role=${encodeURIComponent(user.role || "")}` : `${DASHBOARD_URL}/`;
+    // Build landing URL for terminal navigation
+    const dashboardUrl = isLoggedIn
+        ? `${DASHBOARD_URL}/?token=${token}&username=${encodeURIComponent(user.username || "")}&userId=${user.id || user._id || ""}&role=${encodeURIComponent(user.role || "")}`
+        : `${DASHBOARD_URL}/`;
 
-
-    return(
-        <AuthContext.Provider value={{token, user, login, logout, isLoggedIn, dashboardUrl}}>
+    return (
+        <AuthContext.Provider value={{ token, user, login, logout, isLoggedIn, dashboardUrl }}>
             {children}
         </AuthContext.Provider>
     );
 }
 
-// Custom Hook to use the context 
+/**
+ * Access authenticated user context across the landing portal.
+ */
 export function useAuth() {
     const context = useContext(AuthContext);
-    if(!context){
+    if (!context) {
         throw new Error("useAuth must be used within an AuthProvider");
     }
     return context;

@@ -1,9 +1,25 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+const ROUTE_TITLES = {
+  "/": "Home",
+  "/signup": "Signup",
+  "/login": "Login",
+  "/about": "About",
+  "/products": "Products",
+  "/pricing": "Pricing",
+  "/support": "Support",
+};
+
 export default function Navbar() {
+    const location = useLocation();
+    const cleanPath = location.pathname.toLowerCase().replace(/\/+$/, "") || "/";
+    const activeTitle = ROUTE_TITLES[cleanPath] || "Home";
 
-
+    useEffect(() => {
+        document.title = `Zerodha - ${activeTitle}`;
+    }, [activeTitle]);
 
     const { isLoggedIn, user, logout, dashboardUrl } = useAuth();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -22,7 +38,6 @@ export default function Navbar() {
 
                 <Link to="/"> <img src="media/images/logo.svg" alt="logo" style={{ maxWidth: "120px", width: "100%" }} className="mx-4 mx-md-0" /></Link>
                                <div className="d-flex gap-4 gap-lg-5 fs-6 align-items-center">
-                    {/* 1. Signup / Dashboard Text Link (Zero bulky buttons!) */}
                     {isLoggedIn ? (
                         <a 
                             href={dashboardUrl} 
@@ -44,16 +59,13 @@ export default function Navbar() {
                         </>
                     )}
 
-                    {/* 2. Standard Nav Links */}
                     <Link to="/about" className="text-muted text-decoration-none d-none d-md-block">About</Link>
                     <Link to="/products" className="text-muted text-decoration-none d-none d-md-block">Products</Link>
                     <Link to="/pricing" className="text-muted text-decoration-none d-none d-md-block">Pricing</Link>
                     <Link to="/support" className="text-muted text-decoration-none d-none d-md-block">Support</Link>
 
-                    {/* 3. Compact Circular Avatar & Dropdown (Only when logged in) */}
                     {isLoggedIn && (
                         <div className="position-relative d-none d-md-block">
-                            {/* Circular Avatar Trigger */}
                             <div 
                                 onClick={() => setIsProfileOpen(!isProfileOpen)}
                                 className="rounded-circle d-flex align-items-center justify-content-center text-primary fw-semibold shadow-sm"
@@ -70,7 +82,6 @@ export default function Navbar() {
                                 {avatarInitials}
                             </div>
 
-                            {/* Minimal Profile Dropdown Popup */}
                             {isProfileOpen && (
                                 <div 
                                     className="position-absolute end-0 mt-2 bg-white shadow-sm border rounded-3 p-3"
@@ -96,7 +107,6 @@ export default function Navbar() {
                         </div>
                     )}
 
-                    {/* Mobile Hamburger Toggle Button */}
                     <button
                         type="button"
                         className="btn btn-link text-decoration-none text-muted p-0 d-md-none border-0 mx-3"
@@ -107,9 +117,8 @@ export default function Navbar() {
                     </button>
                 </div>
 
-
             </div>
-            {/* Mobile Dropdown Panel (d-md-none: only visible on mobile when open) */}
+
             {isMobileMenuOpen && (
                 <div className="d-md-none border-top bg-white px-4 py-3 shadow-sm">
                     <div className="d-flex flex-column gap-3 fs-6">
@@ -121,7 +130,6 @@ export default function Navbar() {
                                         <i className="fa-solid fa-user me-1 text-primary"></i> {user?.username}
                                     </span>
                                 </div>
-
                             </div>
                         ) : (
                             <div className="pb-2 border-bottom d-flex gap-2 ">
@@ -143,7 +151,6 @@ export default function Navbar() {
                             </div>
                         )}
 
-                        {/* Standard Navigation Links */}
                         <Link to="/about" onClick={closeMobileMenu} className="text-muted text-decoration-none py-1">About</Link>
                         <Link to="/products" onClick={closeMobileMenu} className="text-muted text-decoration-none py-1">Products</Link>
                         <Link to="/pricing" onClick={closeMobileMenu} className="text-muted text-decoration-none py-1">Pricing</Link>

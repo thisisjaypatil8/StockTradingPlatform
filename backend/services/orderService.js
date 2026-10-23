@@ -6,18 +6,19 @@ const { User, Orders, Holdings, Positions } = require("../models");
 const ExpressError = require("../utils/ExpressError");
 const { round2, toPaise, toRupees } = require("../domain/money");
 
-// constants
 const PRODUCTS = {
     CNC: "CNC",
     MIS: "MIS",
-}
+};
 const SIDES = {
     BUY: "BUY",
     SELL: "SELL",
-}
+};
 const MIS_LEVERAGE = 5;
 
-// WALLET HELPERS
+/**
+ * Wallet Ledger Operations
+ */
 async function debitCash(userId, amount, session) {
     const user = await User.findOneAndUpdate(
         { _id: userId, "funds.availableCash": { $gte: amount } },
@@ -49,7 +50,9 @@ async function recordRealizedPnL(userId, amount, session) {
     );
 }
 
-// Atomically lock margin from availableCash into marginBlocked
+/**
+ * Atomically lock collateral margin from available cash.
+ */
 async function lockMargin(userId, amount, session) {
     const user = await User.findOneAndUpdate(
         { _id: userId, "funds.availableCash": { $gte: amount } },
@@ -71,7 +74,9 @@ async function lockMargin(userId, amount, session) {
     return user;
 }
 
-// Atomically release margin from marginBlocked back into availableCash
+/**
+ * Atomically release collateral margin back to available cash.
+ */
 async function releaseMargin(userId, amount, session) {
     return User.findByIdAndUpdate(
         userId,
@@ -85,8 +90,9 @@ async function releaseMargin(userId, amount, session) {
     );
 }
 
-
-// CNC Execution
+/**
+ * Cash & Carry (CNC) Equity Execution Engine
+ */
 async function executeCncBuy({ userId, name, orderQty, orderPrice, session }) {
     const orderCost = round2(orderQty * orderPrice);
 
@@ -100,9 +106,6 @@ async function executeCncBuy({ userId, name, orderQty, orderPrice, session }) {
             qty: orderQty,
             avg: orderPrice,
             price: orderPrice,
-            net: "+0.00%",
-            day: "+0.00%",
-            isLoss: false,
             user: userId
         });
         await newHolding.save({ session });
@@ -205,7 +208,7 @@ async function executeMisOrder({ userId, name, orderQty, orderPrice, mode, sessi
         pricePaise: toPaise(orderPrice),
     };
 
-    // 1. Run pure institutional fill engine
+    // Calculate position fill dynamics via domain rules
     const fillResult = domainApplyFill(currentPos, fill);
 
     const oldMargin = position.marginBlocked || 0;
@@ -213,29 +216,27 @@ async function executeMisOrder({ userId, name, orderQty, orderPrice, mode, sessi
     const newAvgRupees = toRupees(fillResult.newAvgPaise);
     const realizedDeltaRupees = toRupees(fillResult.realizedDeltaPaise);
 
-    // 2. Compute 5x margin (20% of notional)
+    // Compute 5x margin requirement (20% of notional)
     const newMargin = newNetQty === 0
         ? 0
         : round2((Math.abs(newNetQty) * newAvgRupees) / MIS_LEVERAGE);
 
     const marginDelta = round2(newMargin - oldMargin);
 
-    // 3. Atomically Lock or Release Margin in User Wallet
+    // Rebalance collateral allocation in wallet
     if (marginDelta > 0) {
-        // Position opened or expanded -> Lock additional cash
         await lockMargin(userId, marginDelta, session);
     } else if (marginDelta < 0) {
-        // Position reduced or closed -> Release collateral back to available cash
         await releaseMargin(userId, Math.abs(marginDelta), session);
     }
 
-    // 4. Settle Realized P&L into Wallet
+    // Settle realized PnL to cash balance and ledger
     if (realizedDeltaRupees !== 0) {
         await creditCash(userId, realizedDeltaRupees, session);
         await recordRealizedPnL(userId, realizedDeltaRupees, session);
     }
 
-    // 5. Update Position Document
+    // Commit updated position state
     position.netQty = newNetQty;
     position.qty = newNetQty;
     position.avgEntry = newAvgRupees;
@@ -251,8 +252,10 @@ async function executeMisOrder({ userId, name, orderQty, orderPrice, mode, sessi
     };
 }
 
-
-// MAIN ORDER EXECUTION
+/**
+ * Primary Order Placement Engine
+ * Executes atomic order insertion, portfolio state mutation, and wallet settlement in a single transaction.
+ */
 async function executeOrder({
     userId,
     name,
@@ -276,7 +279,7 @@ async function executeOrder({
                 : Number(price);
     }
 
-    // Pre-check DB
+    // Fast-path idempotency pre-check
     if (idempotencyKey && typeof idempotencyKey === "string" && idempotencyKey.trim().length > 0) {
         const cleanKey = idempotencyKey.trim();
         const existingOrder =
@@ -304,8 +307,6 @@ async function executeOrder({
 
     try {
         await session.withTransaction(async () => {
-
-            // 3. create order audit record
             const orderDoc = {
                 name,
                 qty: orderQty,
@@ -321,7 +322,7 @@ async function executeOrder({
             try {
                 [executedOrder] = await Orders.create([orderDoc], { session });
             } catch (err) {
-                // if parallel race condition hits duplicate key, gracefully return the winning order
+                // Gracefully recover winning order if concurrent execution triggers uniqueness constraint
                 if (err.code === 11000 && err.keyPattern?.idempotencyKey) {
                     const existing = await Orders.findOne({
                         user: userId,
@@ -329,14 +330,13 @@ async function executeOrder({
                     }).session(session).lean();
                     if (existing) {
                         executedOrder = existing;
-                        return; // Return to exit transaction
+                        return;
                     }
                 }
                 throw err;
             }
-           
 
-            // 4. Execute product
+            // Route execution based on product type
             executionSettlement =
                 product === PRODUCTS.CNC
                     ? await executeCncOrder({ userId, name, orderQty, orderPrice, mode, session })
@@ -347,7 +347,6 @@ async function executeOrder({
         await session.endSession();
     }
 
-    //5. Get final wallet snapshot
     const user =
         await User.findById(userId).lean();
 

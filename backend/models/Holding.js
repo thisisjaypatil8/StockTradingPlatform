@@ -19,18 +19,6 @@ const HoldingsSchema = new Schema({
         type: Number, 
         default: 0 
     },
-    net: { 
-        type: String, 
-        default: "+0.00%" 
-    },
-    day: { 
-        type: String, 
-        default: "+0.00%" 
-    },
-    isLoss: { 
-        type: Boolean, 
-        default: false 
-    },
     user: {
         type: Schema.Types.ObjectId,
         ref: "User",

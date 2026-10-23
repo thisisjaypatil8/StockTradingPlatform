@@ -2,8 +2,6 @@ export default function Stats() {
     return (
         <section className="container py-4 py-md-5">
             <div className="row align-items-center g-4 g-lg-5">
-                
-                {/* Left Column: Text & Value Propositions */}
                 <div className="col-12 col-lg-6 p-3 p-md-4">
                     <h2 className="fs-2 fw-bold mb-4 text-dark">Trust with confidence</h2>
                     
@@ -37,7 +35,6 @@ export default function Stats() {
                     </div>
                 </div>
 
-                {/* Right Column: Ecosystem Image & Links */}
                 <div className="col-12 col-lg-6 text-center p-3 p-md-4">
                     <img src="media/images/ecosystem.png" alt="Zerodha Ecosystem" className="img-fluid mb-4" style={{ maxWidth: "90%" }} />
                     <div className="d-flex justify-content-center gap-4 flex-wrap">

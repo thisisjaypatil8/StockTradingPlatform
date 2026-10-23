@@ -84,7 +84,6 @@ export default function Holdings() {
         </table>
       </div>
 
-      {/* Dynamic summary cards */}
       <div className={styles.summaryRow}>
         <div className={styles.summaryCol}>
           <h5>

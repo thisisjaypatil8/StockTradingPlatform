@@ -21,7 +21,6 @@ export const PortfolioProvider = ({ children }) => {
         }
     };
 
-    //1. Fetch live wallet balance from backend
     const fetchFunds = async () => {
         try {
             const res = await API.get("/funds");
@@ -31,26 +30,18 @@ export const PortfolioProvider = ({ children }) => {
         }
     };
 
-    //2. add funds action
     const addFunds = async (amount) => {
         const res = await API.post("/funds/add", { amount });
         applyFundsUpdate(res.data);
         return res.data;
-
-    }
-
-    // 3. Withdraw funds action
-    const withdrawFunds = async (amount) => {
-        try {
-            const res = await API.post("/funds/withdraw", { amount });
-            applyFundsUpdate(res.data);
-            return res.data;
-        } catch (err) {
-            throw err;
-        }
     };
 
-    //4. fetch holdings + live CMP
+    const withdrawFunds = async (amount) => {
+        const res = await API.post("/funds/withdraw", { amount });
+        applyFundsUpdate(res.data);
+        return res.data;
+    };
+
     const fetchPortfolio = async () => {
         try {
             const res = await API.get("/allHoldings");
@@ -116,7 +107,9 @@ export const PortfolioProvider = ({ children }) => {
 
 };
 
-// Custom hook for components
+/**
+ * Hook to consume real-time portfolio metrics, balances, and positions.
+ */
 export const usePortfolio = () => {
     const context = useContext(PortfolioContext);
     if (!context) {

@@ -1,12 +1,17 @@
 const { Order } = require("../models");
 const orderService = require("../services/orderService");
 
+/**
+ * Retrieve user order book sorted by execution time descending.
+ */
 module.exports.getAllOrders = async (req, res) => {
-    // Explicit timestamp sorting
     const allOrders = await Order.find({ user: req.user.id }).sort({ createdAt: -1 }).lean();
     res.status(200).json(allOrders);
 };
 
+/**
+ * Handle new order placement with idempotency tracking.
+ */
 module.exports.createOrder = async (req, res) => {
 
     const idempotencyKey = req.headers["x-idempotency-key"] || req.body.idempotencyKey || null;

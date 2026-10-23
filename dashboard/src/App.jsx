@@ -7,30 +7,56 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 1. Check query parameters from login handoff
-    const queryParams = new URLSearchParams(window.location.search);
-    const tokenFromUrl = queryParams.get("token");
-    const usernameFromUrl = queryParams.get("username");
-    const userIdFromUrl = queryParams.get("userId");
-    const roleFromUrl = queryParams.get("role") || "user";
+    const initAuth = async () => {
+      const queryParams = new URLSearchParams(window.location.search);
+      const codeFromUrl = queryParams.get("code");
+      const tokenFromUrl = queryParams.get("token");
 
-    if (tokenFromUrl) {
-      // Save token in LocalStorage
-      localStorage.setItem("token", tokenFromUrl);
-      localStorage.setItem("user", JSON.stringify({ 
-        username: usernameFromUrl, 
-        id: userIdFromUrl,
-        role: roleFromUrl
-      }));
-      // Remove query string from URL (clean URL & security)
-      window.history.replaceState({}, document.title, window.location.pathname);
-      setIsAuthenticated(true);
-    } else {
-      // 2. Persistent session check
+      // Exchange single-use authorization code for session credentials
+      if (codeFromUrl) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+        try {
+          const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+          const res = await fetch(`${API_URL}/auth/exchange-code`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code: codeFromUrl }),
+          });
+          const data = await res.json();
+          if (res.ok && data.token) {
+            localStorage.setItem("token", data.token);
+            localStorage.setItem("user", JSON.stringify(data.user));
+            setIsAuthenticated(true);
+            setLoading(false);
+            return;
+          }
+        } catch (err) {
+          console.error("Auth code exchange failed:", err);
+        }
+      } else if (tokenFromUrl) {
+        // Fallback for direct token migration
+        const usernameFromUrl = queryParams.get("username");
+        const userIdFromUrl = queryParams.get("userId");
+        const roleFromUrl = queryParams.get("role") || "user";
+        localStorage.setItem("token", tokenFromUrl);
+        localStorage.setItem("user", JSON.stringify({ 
+          username: usernameFromUrl, 
+          id: userIdFromUrl,
+          role: roleFromUrl
+        }));
+        window.history.replaceState({}, document.title, window.location.pathname);
+        setIsAuthenticated(true);
+        setLoading(false);
+        return;
+      }
+
+      // Restore active user session from local storage
       const savedToken = localStorage.getItem("token");
       setIsAuthenticated(Boolean(savedToken));
-    }
-    setLoading(false);
+      setLoading(false);
+    };
+
+    initAuth();
   }, []);
 
   if (loading) {

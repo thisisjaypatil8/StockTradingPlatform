@@ -16,7 +16,7 @@ export default function TopBar() {
     let isMounted = true;
 
     const fetchIndices = async () => {
-      // Background tab check: user tab par nahi hai toh Yahoo call waste mat karo
+      // Avoid polling when document is in background to conserve network resources
       if (document.hidden) return;
 
       try {
@@ -79,7 +79,6 @@ export default function TopBar() {
         </div>
       </div>
 
-      {/* Admin-Exclusive Market Simulator Control Switch */}
       {isAdmin && (
         <button
           type="button"

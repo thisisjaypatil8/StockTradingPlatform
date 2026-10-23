@@ -1,13 +1,28 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
 import styles from "./Menu.module.css";
 
+const PATH_TO_MENU = {
+  "/": "Dashboard",
+  "/orders": "Orders",
+  "/holdings": "Holdings",
+  "/positions": "Positions",
+  "/funds": "Funds",
+  "/apps": "Apps",
+};
+
 export default function Menu() {
-  const [selectedMenu, setSelectedMenu] = useState("Dashboard");
+  const location = useLocation();
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
 
-  const handleMenuClick = (menu) => {
-    setSelectedMenu(menu);
+  const cleanPath = location.pathname.toLowerCase().replace(/\/+$/, "") || "/";
+  const activeMenu = PATH_TO_MENU[cleanPath] || "Dashboard";
+
+  useEffect(() => {
+    document.title = `Kite - ${activeMenu}`;
+  }, [activeMenu]);
+
+  const handleMenuClick = () => {
     setIsProfileDropdownOpen(false);
   };
 
@@ -15,12 +30,10 @@ export default function Menu() {
     setIsProfileDropdownOpen(!isProfileDropdownOpen);
   };
 
-  // 1. Logged in user details
   const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
   const displayName = storedUser.username ? storedUser.username.toUpperCase() : "TRADER";
   const avatarInitials = displayName.slice(0, 1);
 
-  // Logout Handler
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -36,8 +49,8 @@ export default function Menu() {
           <li>
             <Link
               to={"/"}
-              onClick={() => handleMenuClick("Dashboard")}
-              className={`${styles.menu} ${selectedMenu === "Dashboard" ? styles.selected : ""}`}
+              onClick={handleMenuClick}
+              className={`${styles.menu} ${activeMenu === "Dashboard" ? styles.selected : ""}`}
             >
               Dashboard
             </Link>
@@ -45,8 +58,8 @@ export default function Menu() {
           <li>
             <Link
               to={"/orders"}
-              onClick={() => handleMenuClick("Orders")}
-              className={`${styles.menu} ${selectedMenu === "Orders" ? styles.selected : ""}`}
+              onClick={handleMenuClick}
+              className={`${styles.menu} ${activeMenu === "Orders" ? styles.selected : ""}`}
             >
               Orders
             </Link>
@@ -54,8 +67,8 @@ export default function Menu() {
           <li>
             <Link
               to={"/holdings"}
-              onClick={() => handleMenuClick("Holdings")}
-              className={`${styles.menu} ${selectedMenu === "Holdings" ? styles.selected : ""}`}
+              onClick={handleMenuClick}
+              className={`${styles.menu} ${activeMenu === "Holdings" ? styles.selected : ""}`}
             >
               Holdings
             </Link>
@@ -63,8 +76,8 @@ export default function Menu() {
           <li>
             <Link
               to={"/positions"}
-              onClick={() => handleMenuClick("Positions")}
-              className={`${styles.menu} ${selectedMenu === "Positions" ? styles.selected : ""}`}
+              onClick={handleMenuClick}
+              className={`${styles.menu} ${activeMenu === "Positions" ? styles.selected : ""}`}
             >
               Positions
             </Link>
@@ -72,8 +85,8 @@ export default function Menu() {
           <li>
             <Link
               to={"/funds"}
-              onClick={() => handleMenuClick("Funds")}
-              className={`${styles.menu} ${selectedMenu === "Funds" ? styles.selected : ""}`}
+              onClick={handleMenuClick}
+              className={`${styles.menu} ${activeMenu === "Funds" ? styles.selected : ""}`}
             >
               Funds
             </Link>
@@ -81,8 +94,8 @@ export default function Menu() {
           <li>
             <Link
               to={"/apps"}
-              onClick={() => handleMenuClick("Apps")}
-              className={`${styles.menu} ${selectedMenu === "Apps" ? styles.selected : ""}`}
+              onClick={handleMenuClick}
+              className={`${styles.menu} ${activeMenu === "Apps" ? styles.selected : ""}`}
             >
               Apps
             </Link>
@@ -90,7 +103,6 @@ export default function Menu() {
         </ul>
         <hr className={styles.divider} />
 
-        {/* Profile Container with Dropdown */}
         <div className={styles.profileWrapper}>
           <div
             className={styles.profile}
@@ -101,7 +113,6 @@ export default function Menu() {
             <p className={styles.username}>{displayName}</p>
           </div>
 
-          {/* Profile Dropdown Popup */}
           {isProfileDropdownOpen && (
             <div className={styles.dropdown}>
               <div className={styles.dropdownHeader}>

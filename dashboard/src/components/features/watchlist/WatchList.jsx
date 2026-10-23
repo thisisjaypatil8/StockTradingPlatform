@@ -11,7 +11,6 @@ export default function WatchList() {
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
 
-  // Initialize from LocalStorage or fallback to default data
   const [userWatchlist, setUserWatchlist] = useState(() => {
     try {
       const saved = localStorage.getItem("userWatchlist");
@@ -21,7 +20,7 @@ export default function WatchList() {
     }
   });
 
-  // Debounced Live Symbol Search (300ms)
+  // Debounced live symbol lookup (300ms)
   useEffect(() => {
     const trimmed = searchTerm.trim();
     if (trimmed.length < 2) {
@@ -45,8 +44,7 @@ export default function WatchList() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-
-    // Batch Quote polling: 1 single network request for all watchlist stocks
+  // Batch market quote polling across all tracked symbols
   useEffect(() => {
     let isMounted = true;
 
@@ -74,7 +72,7 @@ export default function WatchList() {
     };
 
     refreshWatchlistQuotes();
-    const interval = setInterval(refreshWatchlistQuotes, 15000); // 15 sec live cycle
+    const interval = setInterval(refreshWatchlistQuotes, 15000);
 
     return () => {
       isMounted = false;
@@ -82,7 +80,6 @@ export default function WatchList() {
     };
   }, [userWatchlist.length]);
 
-  // Add stock to Watchlist
   const handleAddStock = (item) => {
     const alreadyExists = userWatchlist.some(
       (s) => s.name.toUpperCase() === item.name.toUpperCase()
@@ -103,7 +100,6 @@ export default function WatchList() {
     setSearchResults([]);
   };
 
-    // Remove stock from Watchlist
   const handleRemoveStock = (stockName) => {
     const updated = userWatchlist.filter(
       (s) => s.name.toUpperCase() !== stockName.toUpperCase()
@@ -112,8 +108,6 @@ export default function WatchList() {
     localStorage.setItem("userWatchlist", JSON.stringify(updated));
   };
 
-
-  // Filter local watchlist
   const filteredWatchlist = userWatchlist.filter((stock) =>
     stock.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -163,7 +157,6 @@ export default function WatchList() {
           {filteredWatchlist.length} / {userWatchlist.length}
         </span>
 
-        {/* Live Search Dropdown */}
         {searchResults.length > 0 && (
           <div className={styles.searchDropdown}>
             {searchResults.map((item) => {

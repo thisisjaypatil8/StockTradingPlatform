@@ -23,7 +23,7 @@ export const calculateAccountMetrics = ({
     const grossWith = Number(grossWithdrawn) || 0;
     const netExternalCapital = grossDep - grossWith;
 
-    // 1. CNC Holdings Pass
+    // Compute cash-and-carry (CNC) cost basis, market value, and day change
     let cncCostBasis = 0;
     let cncMarketValue = 0;
     let cncDayPnL = 0;
@@ -41,7 +41,7 @@ export const calculateAccountMetrics = ({
 
     const cncUnrealizedPnL = cncMarketValue - cncCostBasis;
 
-    // 2. MIS Positions Pass (Signed Branch-Free Formula)
+    // Compute intraday (MIS) realized/unrealized PnL and margin requirements
     let misRealizedPnL = 0;
     let misUnrealizedPnL = 0;
     let totalMarginBlocked = 0;
@@ -53,7 +53,7 @@ export const calculateAccountMetrics = ({
         const realized = Number(stock.realizedPnL) || 0;
         const marginBlocked = Number(stock.marginBlocked) || (Math.abs(net) * avg) / 5;
 
-        // Signed formula handles Long (net > 0) & Short (net < 0) automatically:
+        // Signed direction: (LTP - Avg) * Net supports both Long (> 0) and Short (< 0)
         const unrealized = (ltp - avg) * net;
 
         misRealizedPnL += realized;
@@ -61,31 +61,28 @@ export const calculateAccountMetrics = ({
         totalMarginBlocked += marginBlocked;
     });
 
-    //Total Margin Blocked (prefer backend wallet marginBlocked, fallback to positions sum)
+    // Total margin collateral utilization (wallet allocation preferred)
     const marginBlocked = Number(margin) || totalMarginBlocked;
 
-    // 3. Account Equity (Net Liquidation Value)
-    // Cash already holds realized profits/losses; unrealized is floating
+    // Net Liquidation Value (NLV)
     const equity = availableCash + marginBlocked + cncMarketValue + misUnrealizedPnL;
 
-    // 4. Cumulative P&L (True Profit Created)
+    // Cumulative net performance relative to external capital flows
     const cumulativePnL = equity - netExternalCapital;
 
-    // 5. Crash-Proof Lifetime Return % (Bound denominator to gross capital)
+    // Lifetime ROI bounded against gross principal deposits
     const lifetimeReturnPct = grossDep > 0 ? (cumulativePnL / grossDep) * 100 : 0;
 
-    // 6. Day P&L Separation
+    // Session day PnL attribution
     const positionsDayPnL = misRealizedPnL + misUnrealizedPnL;
     const holdingsDayPnL = cncDayPnL;
     const totalDayPnL = positionsDayPnL + holdingsDayPnL;
 
     return {
-        // External Flows
         grossDeposited: grossDep,
         grossWithdrawn: grossWith,
         netExternalCapital,
 
-        // Balances & Values
         availableCash,
         marginBlocked,
         cncCostBasis,
@@ -94,12 +91,10 @@ export const calculateAccountMetrics = ({
         cncDayPnL: holdingsDayPnL,
         holdingsDayPnL,
 
-        // MIS Metrics
         misRealizedPnL,
         misUnrealizedPnL,
         positionsDayPnL,
 
-        // High-Level Syntheses
         equity,
         cumulativePnL,
         lifetimeReturnPct,

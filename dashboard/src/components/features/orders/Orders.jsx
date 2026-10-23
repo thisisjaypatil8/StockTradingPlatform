@@ -38,10 +38,21 @@ export default function Orders() {
     return true;
   });
  
+  const formatOrderTime = (dateStr) => {
+    if (!dateStr) return "—";
+    const d = new Date(dateStr);
+    return d.toLocaleString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
   return (
     <div className={styles.ordersContainer}>
       <h3 className={styles.title}>Executed Orders ({allOrders.length})</h3>
-         {/* Filter Tabs */}
       <div className={styles.filterContainer}>
         <button
           className={`${styles.filterBtn} ${filter === "ALL" ? styles.filterBtnActive : ""}`}
@@ -70,14 +81,14 @@ export default function Orders() {
               <th>Qty.</th>
               <th>Price (&#8377;)</th>
               <th>Mode</th>
-              <th>Status</th>
+              <th>Time</th>
             </tr>
           </thead>
           <tbody>
 
             { filteredOrders.length === 0 ? (
               <tr>
-                <td colSpan="6" style={{textAlign:"center", padding:'30px', color:"#888"
+                <td colSpan="7" style={{textAlign:"center", padding:'30px', color:"#888"
                 }}>
                   No {filter} orders found</td>
               </tr>
@@ -86,6 +97,7 @@ export default function Orders() {
               const isBuy = order.mode === "BUY";
               return (
                 <tr key={order._id}>
+                 
                   <td>
                     <strong className={styles.instrumentName}>{order.name}</strong>
                   </td>
@@ -96,8 +108,8 @@ export default function Orders() {
                       {order.mode}
                     </span>
                   </td>
-                  <td>
-                    <span className={styles.statusComplete}>● COMPLETE</span>
+                   <td>
+                    <span className={styles.orderTime}>{formatOrderTime(order.createdAt)}</span>
                   </td>
                 </tr>
               );

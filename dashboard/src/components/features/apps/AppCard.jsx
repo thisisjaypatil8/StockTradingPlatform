@@ -14,7 +14,6 @@ export default function AppCard({ app }) {
       }}
     >
       <div>
-        {/* Card top: logo & category badge */}
         <div
           style={{
             display: "flex",
@@ -56,7 +55,6 @@ export default function AppCard({ app }) {
           </span>
         </div>
 
-        {/* Title & Description */}
         <h4
           style={{
             margin: "0 0 8px 0",
@@ -79,7 +77,6 @@ export default function AppCard({ app }) {
         </p>
       </div>
 
-      {/* Card footer: external link */}
       <div
         style={{
           marginTop: "22px",

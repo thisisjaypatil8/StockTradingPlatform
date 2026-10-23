@@ -18,7 +18,9 @@ function buildFundsResponse(user, message = null) {
 }
 
 
-// 1. Get Live Cash Balance
+/**
+ * Retrieve user cash balance and margin utilization metrics.
+ */
 module.exports.getFunds = async (req, res) => {
     const user = await User.findById(req.user.id).lean();
 
@@ -27,9 +29,11 @@ module.exports.getFunds = async (req, res) => {
     res.status(200).json(buildFundsResponse(user));
 };
 
-//2. Add Funds (Deposit)
 const MAX_SINGLE_DEPOSIT = 100000;
 
+/**
+ * Atomic wallet deposit.
+ */
 module.exports.addFunds = async (req, res) => {
     const amount = Number(req.body.amount);
 
@@ -44,25 +48,25 @@ module.exports.addFunds = async (req, res) => {
         );
     }
 
-    // Atomic increment
     const updatedUser = await User.findByIdAndUpdate(
         req.user.id,
         {$inc: {"funds.availableCash": amount, "funds.totalDeposited":amount} },
         {returnDocument: 'after'}
-    )
+    );
 
     res.status(200).json(buildFundsResponse(updatedUser, `₹${amount.toLocaleString('en-IN')} deposited successfully!`));
 };
 
-//3. Withdraw Funds (With Atomic Balance Protection)
+/**
+ * Atomic wallet withdrawal with available balance guard.
+ */
 module.exports.withdrawFunds = async (req, res) => {
     const amount = Number(req.body.amount);
 
-    
     if (!amount || isNaN(amount) || amount <= 0) {
         throw new ExpressError(400, "Please enter a valid withdrawal amount greater than ₹0!");
     }
-    // Atomic check: deduct only if availableCash >= amount
+
     const updatedUser = await User.findOneAndUpdate(
         { _id: req.user.id, "funds.availableCash": { $gte: amount } },
         { $inc: { "funds.availableCash": -amount, "funds.totalWithdrawn":amount } },

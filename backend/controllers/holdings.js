@@ -1,7 +1,6 @@
 const { Holdings } = require("../models");
 
 module.exports.getAllHoldings = async (req, res) => {
-    // only Loggedin user's data will send to client
     const allHoldings = await Holdings.find({ user: req.user.id }).lean();
     res.status(200).json(allHoldings);
 };

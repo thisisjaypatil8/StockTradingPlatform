@@ -93,7 +93,6 @@ export default function BuyActionWindow({ uid, mode = "BUY" }) {
     e.preventDefault();
     setSubmitError("");
 
-    // to stop the invalid quantity from being submitted
     if (!isQuantityValid) {
       setSubmitError("Quantity must be a positive whole number.");
       return;
@@ -130,16 +129,15 @@ export default function BuyActionWindow({ uid, mode = "BUY" }) {
       setIsSubmitting(false);
       return;
     }
-    // 2. Order succeeded in DB -> close modal immediately.
+
     closeOrderWindow();
 
-    // 3. Refresh portfolio and funds in background
+    // Revalidate balances and emit cross-component update signal
     const refreshResults = await Promise.allSettled([
       refreshPortfolio(),
       refreshFunds()
     ]);
 
-    // 4. Notify all components that data has changed
     window.dispatchEvent(new Event("portfolioUpdated"));
 
     if (refreshResults.some((result) => result.status === 'rejected')) {
@@ -169,7 +167,6 @@ export default function BuyActionWindow({ uid, mode = "BUY" }) {
           </button>
         </div>
 
-        {/* Prominent Segmented Toggle Switcher */}
         <div className={styles.tabSwitchGroup}>
           <button
             type="button"

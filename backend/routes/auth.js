@@ -12,4 +12,7 @@ router.post("/signup",authLimiter, wrapAsync(authController.signup));
 // login route
 router.post("/login",authLimiter, wrapAsync(authController.login));
 
+// exchange auth code route (single-use cross-origin handoff)
+router.post("/exchange-code", authLimiter, wrapAsync(authController.exchangeCode));
+
 module.exports = router;

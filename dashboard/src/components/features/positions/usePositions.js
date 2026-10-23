@@ -68,14 +68,14 @@ export const usePositions = () => {
 
     let executionPrice = Number(stock.price);
 
-    // ⚡ Simulator check: User se exit price input maango!
+    // Prompt for exit execution price override in simulation mode
     const isSimMode = localStorage.getItem("isSimulationMode") === "true";
     if (isSimMode) {
       const userPrice = window.prompt(
         `Simulator Mode Active!\nEnter Exit Execution Price for ${stock.name} (${squareOffMode} ${squareOffQty} shares):`,
         stock.price || stock.avg
       );
-      if (userPrice === null) return; // User ne Cancel dabaya
+      if (userPrice === null) return;
       const parsed = parseFloat(userPrice);
       if (!isNaN(parsed) && parsed > 0) {
         executionPrice = parsed;
@@ -111,15 +111,13 @@ export const usePositions = () => {
         msg += `\n\n Math Settlement:\n• Exit Price: ₹${executionPrice.toFixed(2)}\n• Realized P&L: ${sign}₹${Number(settlement.realizedPnL).toFixed(2)}\n• Available Cash: ₹${Number(settlement.availableCash).toLocaleString("en-IN")}`;
       }
       alert(msg);
-      // Reactive re-fetch: zero page reload!
       fetchPositions();
     } catch (err) {
       alert(err.response?.data?.error || `Failed to square off position!`);
     }
   };
 
-
-  // 1-Click RMS Auto Square-Off for All open positions
+  // Execute batch liquidation across all open MIS positions
   const handleSquareOffAll = async () => {
     const isConfirmed = window.confirm(
       " RMS Liquidation Alert\n\nDo you want to square-off all MIS positions now?\n\nThis action cannot be undone."
@@ -129,7 +127,7 @@ export const usePositions = () => {
     try {
       const res = await API.post("/allPositions/squareoffAll");
       alert(res.data.message || "All open positions squared off successfully!");
-      fetchPositions();  // instant re-fetch without page reload!
+      fetchPositions();
     }
     catch (err) {
       alert(err.response?.data?.error || "Failed to executed RMS Square-Off");

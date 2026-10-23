@@ -17,7 +17,6 @@ export default function FundsBreakdown({ metrics, availableMargin, lifetimeReali
 
   return (
     <div className={styles.row}>
-      {/* Column 1: Equity Margins & Trading Power */}
       <div className={styles.col}>
         <h4 className={styles.colTitle}>Equity Margins</h4>
 
@@ -71,7 +70,6 @@ export default function FundsBreakdown({ metrics, availableMargin, lifetimeReali
         </div>
       </div>
 
-      {/* Column 2: Capital Account & Ledger Passbook */}
       <div className={styles.col}>
         <h4 className={styles.colTitle}>Capital Account & Passbook</h4>
 

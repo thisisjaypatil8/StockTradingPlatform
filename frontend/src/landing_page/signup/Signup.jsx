@@ -18,7 +18,7 @@ export default function Signup() {
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
-        setError(""); // Clear error when typing
+        setError("");
     };
 
     const handleSubmit = async (e) => {
@@ -49,7 +49,12 @@ export default function Signup() {
             if (data.token) {
                 login(data.token, data.user);
 
-                window.location.href = `${DASHBOARD_URL}/?token=${data.token}&username=${encodeURIComponent(data.user.username)}&userId=${data.user.id}&role=${encodeURIComponent(data.user.role || "")}`;
+                // Secure SSO handoff: Pass only single-use 30-sec auth code (no tokens in URL)
+                if (data.authCode) {
+                    window.location.href = `${DASHBOARD_URL}/?code=${encodeURIComponent(data.authCode)}`;
+                } else {
+                    window.location.href = `${DASHBOARD_URL}/?token=${data.token}&username=${encodeURIComponent(data.user.username)}&userId=${data.user.id}&role=${encodeURIComponent(data.user.role || "")}`;
+                }
             }
         } catch (err) {
             setError(err.message);
@@ -61,7 +66,6 @@ export default function Signup() {
     return (
         <div className="container py-5">
             <div className="row align-items-center justify-content-center mt-2">
-                {/* Left Column: Visual Illustration */}
                 <div className="col-12 col-md-6 text-center mb-5 mb-md-0">
                     <img
                         src="media/images/account_open.svg"
@@ -75,10 +79,8 @@ export default function Signup() {
                     </h4>
                 </div>
 
-                {/* Right Column: Clean Auth Card */}
                 <div className="col-12 col-md-5 col-lg-4 offset-md-1">
-                    {isLoggedIn ?  (
-                        // logged-in state card
+                    {isLoggedIn ? (
                         <div className="card shadow-sm border-0 p-4 rouded-3">
                             <div className="mb-3"> 
                                 <span className="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill small fw-medium">
@@ -98,7 +100,7 @@ export default function Signup() {
                                 Log out & Switch Account
                             </button>
                         </div>
-                    ):(
+                    ) : (
                          <div className="card shadow-sm border-0 p-4 p-md-4 rounded-3">
                         <h3 className="fw-semibold text-dark mb-1">
                             {isLoginMode ? "Login" : "Sign Up"}
@@ -116,7 +118,6 @@ export default function Signup() {
                         )}
 
                         <form onSubmit={handleSubmit}>
-                            {/* Username Field */}
                             <div className="mb-3">
                                 <label className="form-label small fw-medium text-secondary">
                                     Username
@@ -132,7 +133,6 @@ export default function Signup() {
                                 />
                             </div>
 
-                            {/* Email Field (Only on Signup) */}
                             {!isLoginMode && (
                                 <div className="mb-3">
                                     <label className="form-label small fw-medium text-secondary">
@@ -150,7 +150,6 @@ export default function Signup() {
                                 </div>
                             )}
 
-                            {/* Password Field */}
                             <div className="mb-4">
                                 <label className="form-label small fw-medium text-secondary">
                                     Password
@@ -166,7 +165,6 @@ export default function Signup() {
                                 />
                             </div>
 
-                            {/* Submit Button */}
                             <button
                                 type="submit"
                                 className="btn btn-primary w-100 py-2 fw-medium shadow-sm"
@@ -181,7 +179,6 @@ export default function Signup() {
                             </button>
                         </form>
 
-                        {/* Mode Switcher */}
                         <div className="text-center mt-4">
                             <p className="small text-muted mb-0">
                                 {isLoginMode ? "Don't have an account?" : "Already registered?"}{" "}

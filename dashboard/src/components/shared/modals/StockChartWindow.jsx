@@ -17,7 +17,7 @@ export default function StockChartWindow({ uid, onClose }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // 1. Fetch 1D 5m Intraday Candle Data
+  // Fetch intraday market candle series
   useEffect(() => {
     if (!uid) return;
 
@@ -42,10 +42,10 @@ export default function StockChartWindow({ uid, onClose }) {
         const rawCandles = res.data.candles || [];
         let candleData = rawCandles;
 
-        // Fallback: If candles array is empty but prices exist, build synthetic ticks so chart never renders blank
+        // Fallback: Synthesize tick approximations if candle bars are unavailable
         if (!candleData.length && res.data.prices?.length) {
           const nowSec = Math.floor(Date.now() / 1000);
-          const stepSec = 300; // 5 min interval
+          const stepSec = 300;
           const startSec = nowSec - res.data.prices.length * stepSec;
           candleData = res.data.prices.map((p, i) => ({
             time: startSec + i * stepSec,
@@ -73,7 +73,7 @@ export default function StockChartWindow({ uid, onClose }) {
     };
   }, [uid]);
 
-  // 2. Render Pure Candlestick Chart
+  // Render TradingView Lightweight Candlestick series
   useEffect(() => {
     if (loading || error || !candles.length || !chartContainerRef.current) {
       return;

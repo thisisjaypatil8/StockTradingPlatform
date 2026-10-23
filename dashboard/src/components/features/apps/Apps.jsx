@@ -13,7 +13,6 @@ export default function Apps() {
         </p>
       </div>
 
-      {/* Responsive Grid */}
       <div
         style={{
           display: "grid",

@@ -51,14 +51,12 @@ export default function Summary() {
 
   return (
     <div className={styles.summaryContainer}>
-      {/* User Greeting */}
       <div className={styles.greetingHeader}>
         <h6>Hi, {username}</h6>
         <p className={styles.greetingSubtext}>Here is your live trading and investment overview.</p>
       </div>
       <hr className={styles.divider} />
 
-      {/* 👑 Cumulative Performance & Account Equity Card */}
       <div className={styles.lifetimeCard}>
         <div className={styles.lifetimeHeader}>
           <div className={styles.lifetimeTitle}>
@@ -70,7 +68,6 @@ export default function Summary() {
           </span>
         </div>
         <div className={styles.lifetimeGrid}>
-          {/* 1. Live Account Equity */}
           <div className={styles.lifetimeCol}>
             <span className={styles.lifetimeLabel}>Account Equity</span>
             <h4 className={styles.lifetimeValue}>
@@ -78,7 +75,6 @@ export default function Summary() {
             </h4>
           </div>
 
-          {/* 2. Net External Capital */}
           <div className={styles.lifetimeCol}>
             <span className={styles.lifetimeLabel}>Net External Capital</span>
             <h4 className={styles.lifetimeValue}>
@@ -86,7 +82,6 @@ export default function Summary() {
             </h4>
           </div>
 
-          {/* 3. Cumulative P&L (True Profit Created) */}
           <div className={styles.lifetimeCol}>
             <span className={styles.lifetimeLabel}>Cumulative P&L</span>
             <h4 className={isProfit ? styles.profit : styles.loss}>
@@ -101,7 +96,6 @@ export default function Summary() {
 
       <hr className={styles.divider} />
 
-      {/* 1. Equity & Margin Pillar */}
       <div className={styles.section}>
         <div className={styles.sectionTitle}>
           <span className={styles.iconDot}></span>
@@ -130,7 +124,6 @@ export default function Summary() {
       </div>
       <hr className={styles.divider} />
 
-      {/* 2. Holdings Pillar */}
       <div className={styles.section}>
         <div className={styles.sectionTitle}>
           <span className={styles.iconDot}></span>
@@ -171,7 +164,6 @@ export default function Summary() {
       </div>
       <hr className={styles.divider} />
 
-      {/* 3. Positions Pillar */}
       <div className={styles.section}>
         <div className={styles.sectionTitle}>
           <span className={styles.iconDot}></span>

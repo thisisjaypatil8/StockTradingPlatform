@@ -2,6 +2,9 @@ import { useState } from "react";
 import { formatCurrency } from "../../../utils/portfolioMath";
 import styles from "./Funds.module.css";
 
+/**
+ * Modal interface for margin deposit and withdrawal workflows.
+ */
 export default function FundsModal({
   isOpen,
   mode,
@@ -75,7 +78,6 @@ export default function FundsModal({
               autoFocus
             />
           </div>
-          {/* Quick Preset Pills */}
           <div className={styles.pillContainer}>
             {mode === "ADD" ? (
               <>

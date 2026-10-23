@@ -3,10 +3,8 @@ import { useState } from "react";
 const url = "/support";
 
 export default function CreateTicket() {
-    // 1. Add activeState tracker for accordion toggles
     const [openIndex, setOpenIndex] = useState(null);
 
-    // 2. Map items with nested dummy FAQs so accordion actually works
     const topics = [
         { 
             icon: "fa-regular fa-circle-plus", 
@@ -40,7 +38,6 @@ export default function CreateTicket() {
         },
     ];
 
-    // 3. Map list items directly to live authoritative URLs to avoid dead links
     const quickLinks = [
         { text: "1. Track account opening", url: url },
         { text: "2. Track segment activation", url: url },
@@ -56,15 +53,12 @@ export default function CreateTicket() {
     return (
         <div className="p-md-4 p-3">
             <div className="row g-4">
-                
-                {/* ── Left Column: Support Topic Bars (Accordions) ── */}
                 <div className="col-12 col-md-8">
                     <div className="d-flex flex-column gap-3">
                         {topics.map((topic, index) => {
                             const isCurrentOpen = openIndex === index;
                             return (
                                 <div key={index} className="border rounded shadow-sm bg-white overflow-hidden">
-                                    {/* Header Toggle */}
                                     <div 
                                         onClick={() => toggleAccordion(index)}
                                         className="d-flex justify-content-between align-items-center p-3 px-4"
@@ -83,7 +77,6 @@ export default function CreateTicket() {
                                            style={{ transform: isCurrentOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}></i>
                                     </div>
                                     
-                                    {/* Reusable Accordion Dropdown Content */}
                                     {isCurrentOpen && (
                                         <div className="p-3 px-4 border-top bg-light">
                                             <div className="row row-cols-1 row-cols-sm-2 g-2">
@@ -103,10 +96,7 @@ export default function CreateTicket() {
                     </div>
                 </div>
 
-                {/* ── Right Column: Notices & Quick Links ── */}
                 <div className="col-12 col-md-4">
-                    
-                    {/* Notice Box (Orange Left Accent) */}
                     <div 
                         className="p-3 mb-4 rounded" 
                         style={{ backgroundColor: "#FFF8E7", borderLeft: "4px solid #F59E0B" }}
@@ -125,7 +115,6 @@ export default function CreateTicket() {
                         </ul>
                     </div>
 
-                    {/* Quick Links Card */}
                     <div className="border rounded bg-white overflow-hidden shadow-sm">
                         <div className="py-2 px-3 fw-semibold text-muted" style={{ backgroundColor: "#F7F7F7" }}>
                             Quick links
