@@ -119,6 +119,9 @@ export default function BuyActionWindow({ uid, mode = "BUY" }) {
       );
     } catch (err) {
       console.log(err);
+
+      idempotencyKeyRef.current =
+        `${uid}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
       setSubmitError(
         err.response?.data?.message ||
         err.response?.data?.error ||

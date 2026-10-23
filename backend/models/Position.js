@@ -23,22 +23,6 @@ const PositionsSchema = new Schema({
         type: Number,
         default: 0
     },
-    buyQty: {
-        type: Number,
-        default: 0
-    },
-    sellQty: {
-        type: Number,
-        default: 0
-    },
-    buyAvg: {
-        type: Number,
-        default: 0
-    },
-    sellAvg: {
-        type: Number,
-        default: 0
-    },
     avg: {
         type: Number,
         default: 0
@@ -58,18 +42,6 @@ const PositionsSchema = new Schema({
     realizedPnL: {
         type: Number,
         default: 0
-    },
-    net: {
-        type: String,
-        default: "+0.00%"
-    },
-    day: {
-        type: String,
-        default: "+0.00"
-    },
-    isLoss: {
-        type: Boolean,
-        default: false
     },
 }, { timestamps: true });
 

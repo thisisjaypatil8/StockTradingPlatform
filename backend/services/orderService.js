@@ -163,31 +163,6 @@ function calculateMarginBlocked(qty, avgPrice) {
     return round2((Math.abs(qty) * avgPrice) / MIS_LEVERAGE);
 }
 
-function syncLegacyPositionFields(position, qty, avgPrice) {
-    if (qty > 0) {
-        position.buyQty = qty;
-        position.buyAvg = avgPrice;
-
-        position.sellQty = 0;
-        position.sellAvg = 0;
-
-        return;
-    }
-    if (qty < 0) {
-        position.sellQty = Math.abs(qty);
-        position.sellAvg = avgPrice;
-
-        position.buyQty = 0;
-        position.buyAvg = 0;
-
-        return;
-    }
-    position.buyQty = 0;
-    position.buyAvg = 0;
-    position.sellQty = 0;
-    position.sellAvg = 0;
-}
-
 // MIS Position execution
 function createEmptyMisPosition({ name, userId, orderPrice, }) {
     return new Positions({
@@ -205,10 +180,6 @@ function createEmptyMisPosition({ name, userId, orderPrice, }) {
 
         realizedPnL: 0,
         marginBlocked: 0,
-
-        net: "+0.00%",
-        day: "+0.00%",
-        isLoss: false
     });
 }
 
@@ -272,8 +243,6 @@ async function executeMisOrder({ userId, name, orderQty, orderPrice, mode, sessi
     position.price = orderPrice;
     position.marginBlocked = newMargin;
     position.realizedPnL = round2((position.realizedPnL || 0) + realizedDeltaRupees);
-
-    syncLegacyPositionFields(position, newNetQty, newAvgRupees);
 
     await position.save({ session });
     return {
@@ -352,9 +321,16 @@ async function executeOrder({
             try {
                 [executedOrder] = await Orders.create([orderDoc], { session });
             } catch (err) {
-                // if parallel race condition hit the unique compound index, abort transaction gracefully
+                // if parallel race condition hits duplicate key, gracefully return the winning order
                 if (err.code === 11000 && err.keyPattern?.idempotencyKey) {
-                    throw new ExpressError(409, "Duplicate order request detected and blocked.");
+                    const existing = await Orders.findOne({
+                        user: userId,
+                        idempotencyKey: orderDoc.idempotencyKey,
+                    }).session(session).lean();
+                    if (existing) {
+                        executedOrder = existing;
+                        return; // Return to exit transaction
+                    }
                 }
                 throw err;
             }

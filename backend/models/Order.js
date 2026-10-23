@@ -9,14 +9,14 @@ const OrderSchema = new Schema({
         type: Number,
         required: true
     },
-    price: { 
-        type: Number, 
-        required: true 
+    price: {
+        type: Number,
+        required: true
     },
     mode: {
         type: String,
         enum: ["BUY", "SELL"],
-        required: true 
+        required: true
     },
     product: {
         type: String,
@@ -25,7 +25,6 @@ const OrderSchema = new Schema({
     },
     idempotencyKey: {
         type: String,
-        sparse: true,
     },
     user: {
         type: Schema.Types.ObjectId,
@@ -40,7 +39,17 @@ const OrderSchema = new Schema({
 });
 
 // Compound Indexes
-OrderSchema.index({user: 1, idempotencyKey: 1}, { unique: true, sparse: true });
-OrderSchema.index({ user: 1, createdAt: -1});
+OrderSchema.index({
+    user: 1,
+    idempotencyKey: 1
+}, {
+    unique: true,
+    partialFilterExpression: { idempotencyKey: { $type: "string" } }
+});
+
+OrderSchema.index({
+    user: 1,
+    createdAt: -1
+});
 
 module.exports = model("Orders", OrderSchema);

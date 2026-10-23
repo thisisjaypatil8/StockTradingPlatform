@@ -100,55 +100,6 @@ module.exports.validateOrderInput = (req, res, next) => {
     next();
 };
 
-
-// Idempotency Guard(Prevents accidental duplicate orders)
-const idempotencyStore = new Map();
-
-//Evict keys older than 2 min to prevent memory leaks
-const IDEMPOTENCY_TTL = 1000 * 60 * 2; //2 min
-
-module.exports.idempotencyGuard = (req, res, next) => {
-    //1. Check if client provided an idempotent key
-    const key = req.headers["x-idempotency-key"];
-    if (!key) {
-        //If not provided, continue normally (non-breaking)
-        return next();
-    }
-
-    const cached = idempotencyStore.get(key);
-
-    //2. If key exists and is still valid
-    if (cached) {
-        if (Date.now() < cached.expiresAt) {
-            //Return cached response without touching DB or debiting funds!
-            return res.status(cached.statusCode).json(cached.body);
-        } else {
-            //Old entry expired → delete
-            idempotencyStore.delete(key);
-        }
-    }
-
-    //3. Intercept res.json to capture the response for caching
-    const originalJson = res.json.bind(res);
-    res.json = (body) => {
-        // cache response if everything is okay
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-            idempotencyStore.set(key, {
-                statusCode: res.statusCode,
-                body,
-                expiresAt: Date.now() + IDEMPOTENCY_TTL
-            });
-        }
-        // call original response sender
-        return originalJson(body);
-    };
-
-    // pass response to next handler
-    next();
-};
-
-
-
 //1. Database & library error transformers
 const handleCastErrorDB = (err) => {
     const message = `Invalid ${err.path}: ${err.value}`;

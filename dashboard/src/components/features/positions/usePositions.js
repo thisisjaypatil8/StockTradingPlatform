@@ -86,7 +86,8 @@ export const usePositions = () => {
       );
       if (!isConfirmed) return;
     }
-
+    const squareOffKey =
+      `SQOFF-${stock.name}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     try {
       const res = await API.post("/newOrder", {
         name: stock.name,
@@ -95,7 +96,13 @@ export const usePositions = () => {
         mode: squareOffMode,
         product: "MIS",
         isSimulation: isSimMode,
-      });
+      },
+        {
+          headers:{
+          "X-Idempotency-Key": squareOffKey,
+        },
+      }
+    );
 
       const settlement = res.data.settlement;
       let msg = `Position squared off successfully!`;
