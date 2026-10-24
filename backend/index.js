@@ -65,6 +65,7 @@ app.use("/allPositions", positionsRoutes);
 app.use("/", ordersRoutes);
 
 app.use("/", authRoutes);
+app.use("/auth", authRoutes);
 
 app.use("/funds", fundsRoutes);
 
