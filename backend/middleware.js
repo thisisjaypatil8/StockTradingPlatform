@@ -195,7 +195,7 @@ module.exports.sanitizeData = (req, res, next) => {
 // Rate limiter to prevent brute-force attacks on login/signup
 module.exports.authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 10, // Limit each IP to 10 attempts
+    max: 100, // Limit each IP to 10 attempts
     standardHeaders: true, // Return rate limit info in X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset headers
     legacyHeaders: false, // Disable X-RateLimit-* headers
     message: {

@@ -43,9 +43,11 @@ export default function App() {
     const initAuth = async () => {
       const queryParams = new URLSearchParams(window.location.search);
       const codeFromUrl = queryParams.get("code");
-      const tokenFromUrl = queryParams.get("token");
 
       if (codeFromUrl) {
+        // Preferred path: exchange the 30-second single-use auth code for a JWT.
+        // The code is consumed server-side (deleted on first use) so it cannot
+        // be replayed even if it appears in browser history.
         const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
         const success = await exchangeAuthCode(codeFromUrl, API_URL);
         if (isMounted) {
@@ -55,24 +57,9 @@ export default function App() {
         return;
       }
 
-      if (tokenFromUrl) {
-        const usernameFromUrl = queryParams.get("username");
-        const userIdFromUrl = queryParams.get("userId");
-        const roleFromUrl = queryParams.get("role") || "user";
-        localStorage.setItem("token", tokenFromUrl);
-        localStorage.setItem("user", JSON.stringify({ 
-          username: usernameFromUrl, 
-          id: userIdFromUrl,
-          role: roleFromUrl
-        }));
-        window.history.replaceState({}, document.title, window.location.pathname);
-        if (isMounted) {
-          setIsAuthenticated(true);
-          setLoading(false);
-        }
-        return;
-      }
-
+      // No auth code — fall back to an existing localStorage session (e.g. page refresh).
+      // The token-in-URL fallback (?token=…) has been removed: bearer tokens must
+      // not appear in URLs where they can leak through browser history or Referer headers.
       const savedToken = localStorage.getItem("token");
       if (isMounted) {
         setIsAuthenticated(Boolean(savedToken));
@@ -88,7 +75,7 @@ export default function App() {
   }, []);
 
   if (loading) {
-    return <div style={{ textAlign: "center", marginTop: "20%" }}><h4>Loading Kite Terminal...</h4></div>;
+    return <div style={{ textAlign: "center", marginTop: "20%" }}><h4>Loading Terminal...</h4></div>;
   }
 
   // Protected Route Guard
@@ -96,9 +83,9 @@ export default function App() {
     const signupUrl = (import.meta.env.VITE_WWW_URL || "http://localhost:5173") + "/signup";
     return (
       <div style={{ textAlign: "center", marginTop: "15%", fontFamily: "sans-serif" }}>
-        <img src="logo.png" alt="Zerodha" style={{ width: "60px", marginBottom: "20px" }} />
+        <img src="logo.png" alt="Logo" style={{ width: "60px", marginBottom: "20px" }} />
         <h2 style={{ color: "#444" }}>Session Expired or Unauthorized</h2>
-        <p style={{ color: "#888", marginBottom: "25px" }}>Please log in via the Kite portal to access your trading dashboard.</p>
+        <p style={{ color: "#888", marginBottom: "25px" }}>Please log in to access your trading dashboard.</p>
         <button
           onClick={() => window.location.href = signupUrl}
           style={{

@@ -269,14 +269,21 @@ async function executeOrder({
     const orderQty = Number(qty);
     const isSim = isSimulation === true || isSimulation === "true";
     let orderPrice;
+
     if (isSim && Number(price) > 0) {
+        // Simulation mode (admin only): use the caller-supplied price intentionally.
         orderPrice = Number(price);
     } else {
         const liveMarketPrice = await marketService.getLiveMarketPrice(name);
-        orderPrice =
-            liveMarketPrice && Number(liveMarketPrice) > 0
-                ? Number(liveMarketPrice)
-                : Number(price);
+        if (!liveMarketPrice || Number(liveMarketPrice) <= 0) {
+            // Never silently fall back to a client-supplied price — a caller could
+            // send any value and get an artificially cheap or expensive fill.
+            throw new ExpressError(
+                503,
+                `Market price unavailable for '${name}'. Please try again shortly.`
+            );
+        }
+        orderPrice = Number(liveMarketPrice);
     }
 
     // Fast-path idempotency pre-check

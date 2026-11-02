@@ -46,15 +46,20 @@ export default function Signup() {
                 throw new Error(data.error || "Authentication failed!");
             }
 
-            if (data.token) {
+            // Store session in the landing portal so the navbar/hero reflect login state.
+            // The dashboard receives only the single-use auth code and exchanges it
+            // independently — the JWT never appears in any URL.
+            if (data.token && data.user) {
                 login(data.token, data.user);
+            }
 
-                // Secure SSO handoff: Pass only single-use 30-sec auth code (no tokens in URL)
-                if (data.authCode) {
-                    window.location.href = `${DASHBOARD_URL}/?code=${encodeURIComponent(data.authCode)}`;
-                } else {
-                    window.location.href = `${DASHBOARD_URL}/?token=${data.token}&username=${encodeURIComponent(data.user.username)}&userId=${data.user.id}&role=${encodeURIComponent(data.user.role || "")}`;
-                }
+            if (data.authCode) {
+                // Secure SSO handoff: pass only the 30-second single-use code (no token in URL).
+                window.location.href = `${DASHBOARD_URL}/?code=${encodeURIComponent(data.authCode)}`;
+            } else {
+                // authCode missing — server-side issue. Redirect to dashboard root;
+                // the dashboard will fall back to any existing localStorage session.
+                window.location.href = `${DASHBOARD_URL}/`;
             }
         } catch (err) {
             setError(err.message);

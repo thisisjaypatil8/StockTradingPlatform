@@ -55,10 +55,12 @@ export function AuthProvider({children}){
     const isLoggedIn = Boolean(token && user);
     const DASHBOARD_URL = import.meta.env.VITE_DASHBOARD_URL || "http://localhost:3000";
 
-    // Build landing URL for terminal navigation
-    const dashboardUrl = isLoggedIn
-        ? `${DASHBOARD_URL}/?token=${token}&username=${encodeURIComponent(user.username || "")}&userId=${user.id || user._id || ""}&role=${encodeURIComponent(user.role || "")}`
-        : `${DASHBOARD_URL}/`;
+    // Plain dashboard root — never embed the JWT in a URL.
+    // The Signup flow hands off a short-lived auth code (?code=…) instead;
+    // the dashboard exchanges it for a token via POST /exchange-code.
+    // NOTE: token is stored in localStorage (XSS-readable). Acceptable for a
+    // paper-trading sim; upgrade to httpOnly cookies for production hardening.
+    const dashboardUrl = `${DASHBOARD_URL}/`;
 
     return (
         <AuthContext.Provider value={{ token, user, login, logout, isLoggedIn, dashboardUrl }}>

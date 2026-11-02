@@ -5,7 +5,10 @@ const { User } = require("../models");
 const ExpressError = require("../utils/ExpressError");
 const { JWT_SECRET } = require("../middleware");
 
-// In-memory single-use 30-second auth code store
+// In-memory single-use 30-second auth code store.
+// Sufficient for a single-instance deployment. For multi-instance or
+// zero-downtime deployments, replace with Redis: SET authcode:<code> <JSON> EX 30
+// and exchange atomically with GETDEL.
 const authCodes = new Map();
 
 function generateAuthCode(user) {
@@ -34,12 +37,16 @@ module.exports.signup = async (req, res) => {
 
     const registeredUser = await User.register(newUser, password);
 
+    // Issue a JWT for the landing portal's own session (stored in localStorage).
     const token = jwt.sign(
         { id: registeredUser._id, username: registeredUser.username, email: registeredUser.email, role: registeredUser.role },
         JWT_SECRET,
         { expiresIn: "7d" }
     );
 
+    // Issue a separate single-use auth code for the cross-origin dashboard handoff.
+    // The dashboard exchanges this code server-side via POST /exchange-code and
+    // receives its own JWT — the bearer token never appears in any URL.
     const authCode = generateAuthCode(registeredUser);
 
     res.status(200).json({
@@ -66,12 +73,14 @@ module.exports.login = (req, res, next) => {
 
         const userRole = user.role || "user";
 
+        // Issue a JWT for the landing portal's own session (stored in localStorage).
         const token = jwt.sign(
             { id: user._id, username: user.username, email: user.email, role: userRole },
             JWT_SECRET,
             { expiresIn: "7d" }
         );
 
+        // Issue a single-use auth code for the cross-origin dashboard handoff.
         const authCode = generateAuthCode(user);
 
         res.status(200).json({
@@ -89,7 +98,7 @@ module.exports.login = (req, res, next) => {
     })(req, res, next);
 };
 
-// Exchange single-use auth code for session token (Zero token in URL)
+// Exchange single-use auth code for session token (zero token in URL)
 module.exports.exchangeCode = async (req, res) => {
     const { code } = req.body;
 
@@ -121,4 +130,3 @@ module.exports.exchangeCode = async (req, res) => {
         }
     });
 };
-
